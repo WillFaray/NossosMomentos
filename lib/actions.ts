@@ -2,6 +2,7 @@
 
 import { prisma } from "./db";
 import { revalidatePath } from "next/cache";
+import { getTodayDateString } from "./utils";
 import type {
     MediaType,
     DbUser,
@@ -126,6 +127,19 @@ function validateReviewInput(input: MovieReviewInput): void {
         assert(input.platform.length <= 100, "Nome da plataforma/local excede 100 caracteres.");
     }
 
+    if (Array.isArray(input.watchedDates)) {
+        for (const d of input.watchedDates) {
+            assert(isValidDateString(d), `Data assistida inválida no período: "${String(d)}".`);
+        }
+    }
+
+    if (input.status !== undefined && input.status !== null) {
+        assert(
+            input.status === "completed" || input.status === "abandoned",
+            "Status da obra inválido."
+        );
+    }
+
     assert(isNonEmptyString(input.recommendedById), "Indicador inválido.");
 }
 
@@ -199,6 +213,26 @@ export async function getUsers(): Promise<DbUser[]> {
 
 const DEFAULT_AVATAR = "https://ui-avatars.com/api/?name=User&background=4338ca&color=fff&size=150&bold=true";
 
+/** Valida nome e URL de avatar de um usuário */
+function validateUserFields(name: unknown, avatarUrl?: unknown): { name: string; avatarUrl: string } {
+    assert(isNonEmptyString(name), "Nome do usuário é obrigatório.");
+    const trimmedName = name.trim();
+    assert(trimmedName.length <= NAME_MAX, `Nome excede ${NAME_MAX} caracteres.`);
+
+    let resolvedAvatar = DEFAULT_AVATAR;
+    if (avatarUrl !== undefined && avatarUrl !== null && String(avatarUrl).trim() !== "") {
+        assert(typeof avatarUrl === "string", "URL de avatar inválida.");
+        const trimmedUrl = avatarUrl.trim();
+        assert(
+            trimmedUrl.length <= URL_MAX && isValidHttpUrl(trimmedUrl),
+            "URL de avatar inválida (use http:// ou https://)."
+        );
+        resolvedAvatar = trimmedUrl;
+    }
+
+    return { name: trimmedName, avatarUrl: resolvedAvatar };
+}
+
 /** Cria os dois perfis iniciais (onboarding) */
 export async function setupUsers(input: {
     user1Name: string;
@@ -211,17 +245,20 @@ export async function setupUsers(input: {
         throw new Error("Setup não permitido: usuários já existem.");
     }
 
+    const u1 = validateUserFields(input.user1Name, input.user1Avatar);
+    const u2 = validateUserFields(input.user2Name, input.user2Avatar);
+
     const users = await prisma.$transaction([
         prisma.user.create({
             data: {
-                name: input.user1Name.trim(),
-                avatarUrl: input.user1Avatar?.trim() || DEFAULT_AVATAR
+                name: u1.name,
+                avatarUrl: u1.avatarUrl
             }
         }),
         prisma.user.create({
             data: {
-                name: input.user2Name.trim(),
-                avatarUrl: input.user2Avatar?.trim() || DEFAULT_AVATAR
+                name: u2.name,
+                avatarUrl: u2.avatarUrl
             }
         })
     ]);
@@ -243,11 +280,14 @@ export async function updateUser(input: {
     name: string;
     avatarUrl?: string;
 }): Promise<DbUser> {
+    assert(isNonEmptyString(input.id), "ID de usuário inválido.");
+    const validated = validateUserFields(input.name, input.avatarUrl);
+
     const user = await prisma.user.update({
         where: { id: input.id },
         data: {
-            name: input.name.trim(),
-            avatarUrl: input.avatarUrl?.trim() || DEFAULT_AVATAR
+            name: validated.name,
+            avatarUrl: validated.avatarUrl
         }
     });
 
@@ -308,28 +348,41 @@ export async function addToWatchlist(input: {
     }
 
     assert(isNonEmptyString(input.tmdbId), "ID da obra inválido.");
+    assert(input.tmdbId.length <= 32, "ID da obra excede o limite de caracteres.");
     assert(isNonEmptyString(input.title), "Título da obra inválido.");
+    assert(input.title.trim().length <= TITLE_MAX, `Título excede ${TITLE_MAX} caracteres.`);
+
+    const resolvedMediaType: MediaType = input.mediaType === "tv" ? "tv" : "movie";
+    const safePosterPath = typeof input.posterPath === "string" ? input.posterPath : "";
+    assert(safePosterPath.length <= URL_MAX, `Caminho do pôster excede ${URL_MAX} caracteres.`);
+
+    const watchlistCount = await prisma.watchlistItem.count();
+    assert(watchlistCount < MAX_WATCHLIST, `Limite máximo de ${MAX_WATCHLIST} títulos na lista de interesse atingido.`);
 
     const existing = await prisma.watchlistItem.findUnique({
-        where: { tmdbId: input.tmdbId },
+        where: {
+            tmdbId_mediaType: {
+                tmdbId: input.tmdbId,
+                mediaType: resolvedMediaType
+            }
+        },
         select: { id: true }
     });
     assert(!existing, "Esta obra já está na lista de interesse.");
 
-    const safePosterPath = typeof input.posterPath === "string" ? input.posterPath : "";
     const safeGenres = Array.isArray(input.genres) ? validateGenres(input.genres) : [];
 
     const item = await prisma.watchlistItem.create({
         data: {
             tmdbId: input.tmdbId,
-            title: input.title,
+            title: input.title.trim(),
             posterPath: safePosterPath,
             genres: JSON.stringify(safeGenres),
             runtime: input.runtime && input.runtime > 0 ? input.runtime : null,
             releaseDate: input.releaseDate || null,
             overview: input.overview || null,
             addedById: targetUserId,
-            mediaType: input.mediaType || "movie",
+            mediaType: resolvedMediaType,
             numberOfSeasons: input.numberOfSeasons ?? null,
             numberOfEpisodes: input.numberOfEpisodes ?? null
         }
@@ -345,10 +398,10 @@ export async function addToWatchlist(input: {
     };
 }
 
-/** Remove um item da watchlist (pelo tmdbId) */
-export async function removeFromWatchlist(tmdbId: string): Promise<void> {
+/** Remove um item da watchlist (pelo tmdbId e opcionalmente mediaType para evitar colisão entre filmes e séries) */
+export async function removeFromWatchlist(tmdbId: string, mediaType?: MediaType): Promise<void> {
     await prisma.watchlistItem.deleteMany({
-        where: { tmdbId }
+        where: mediaType ? { tmdbId, mediaType } : { tmdbId }
     });
 
     revalidatePath("/lista-de-interesse");
@@ -387,10 +440,11 @@ export async function addMovieReview(input: MovieReviewInput): Promise<DbMovieRe
 
     const shouldRemoveWatchlist = input.removeFromWatchlist !== false;
 
+    const resolvedMediaType: MediaType = input.mediaType === "tv" ? "tv" : "movie";
     const review = await prisma.$transaction(async (tx) => {
         if (shouldRemoveWatchlist) {
             await tx.watchlistItem.deleteMany({
-                where: { tmdbId: input.tmdbId }
+                where: { tmdbId: input.tmdbId, mediaType: resolvedMediaType }
             });
         }
 
@@ -605,7 +659,7 @@ export async function addSeriesProgress(input: AddSeriesProgressInput): Promise<
     const progress = await prisma.$transaction(async (tx) => {
         if (shouldRemoveWatchlist) {
             await tx.watchlistItem.deleteMany({
-                where: { tmdbId: input.tmdbId }
+                where: { tmdbId: input.tmdbId, mediaType: "tv" }
             });
         }
 
@@ -705,6 +759,57 @@ export async function addSeriesCheckin(input: AddSeriesCheckinInput): Promise<Db
     };
 }
 
+/** Exclui um check-in de episódios e recalcula o episódio atual da série em andamento */
+export async function deleteSeriesCheckin(
+    id: string
+): Promise<{ success: boolean; seriesProgressId: string; currentEpisode: number }> {
+    assert(isNonEmptyString(id), "ID do check-in inválido.");
+
+    const result = await prisma.$transaction(async (tx) => {
+        const existing = await tx.seriesCheckin.findUnique({
+            where: { id },
+            select: { id: true, seriesProgressId: true }
+        });
+        assert(existing, "Check-in não encontrado.");
+
+        await tx.seriesCheckin.delete({
+            where: { id }
+        });
+
+        const remaining = await tx.seriesCheckin.findMany({
+            where: { seriesProgressId: existing.seriesProgressId },
+            select: { episodeEnd: true }
+        });
+
+        const recalculatedEpisode = remaining.reduce(
+            (max, c) => Math.max(max, c.episodeEnd),
+            0
+        );
+
+        await tx.seriesProgress.update({
+            where: { id: existing.seriesProgressId },
+            data: {
+                currentEpisode: recalculatedEpisode,
+                updatedAt: new Date()
+            }
+        });
+
+        return {
+            seriesProgressId: existing.seriesProgressId,
+            currentEpisode: recalculatedEpisode
+        };
+    });
+
+    revalidatePath("/");
+    revalidatePath("/perfis");
+
+    return {
+        success: true,
+        seriesProgressId: result.seriesProgressId,
+        currentEpisode: result.currentEpisode
+    };
+}
+
 /** Cancela e exclui silenciosamente uma série em andamento sem poluir o histórico */
 export async function deleteSeriesProgress(id: string): Promise<{ success: boolean }> {
     assert(isNonEmptyString(id), "ID da série inválido.");
@@ -746,7 +851,7 @@ export async function abandonSeriesProgress(
     const watchedDates =
         checkinDates.length > 0
             ? Array.from(new Set(checkinDates)).sort()
-            : [input.dateWatched || new Date().toISOString().slice(0, 10)];
+            : [input.dateWatched || getTodayDateString()];
     const latestDate = watchedDates[watchedDates.length - 1];
 
     const episodesWatched =
@@ -860,7 +965,7 @@ export async function completeSeriesProgress(
             ? Array.from(new Set(input.watchedDates)).sort()
             : checkinDates.length > 0
             ? Array.from(new Set(checkinDates)).sort()
-            : [input.dateWatched || new Date().toISOString().slice(0, 10)];
+            : [input.dateWatched || getTodayDateString()];
 
     const dateWatched = input.dateWatched || watchedDates[watchedDates.length - 1];
     assert(isValidDateString(dateWatched), "Data assistida inválida (use AAAA-MM-DD).");
@@ -883,7 +988,7 @@ export async function completeSeriesProgress(
     const review = await prisma.$transaction(async (tx) => {
         if (shouldRemoveWatchlist) {
             await tx.watchlistItem.deleteMany({
-                where: { tmdbId: progress.tmdbId }
+                where: { tmdbId: progress.tmdbId, mediaType: "tv" }
             });
         }
 
@@ -1080,13 +1185,19 @@ function validateImportData(raw: unknown): asserts raw is ExportData {
     const reviewIds = new Set(data.reviews!.map((r) => r.id));
     assert(reviewIds.size === data.reviews!.length, "Existem registros com ID duplicado no arquivo.");
 
-    // Watchlist: IDs e tmdbIds únicos
-    const watchlistTmdbIds = new Set<string>();
+    // Watchlist: chaves compostas (mediaType:tmdbId) únicas
+    const watchlistKeys = new Set<string>();
+    const watchlistMovieTmdbIds = new Set<string>();
     for (const item of data.watchlist!) {
         assert(isNonEmptyString(item?.id), "Item da lista com ID inválido.");
         assert(isNonEmptyString(item.tmdbId), "Item da lista sem ID TMDB.");
-        assert(!watchlistTmdbIds.has(item.tmdbId), `Título duplicado na lista de interesse: "${item.title}".`);
-        watchlistTmdbIds.add(item.tmdbId);
+        const itemMediaType = item.mediaType === "tv" ? "tv" : "movie";
+        const compositeKey = `${itemMediaType}:${item.tmdbId}`;
+        assert(!watchlistKeys.has(compositeKey), `Título duplicado na lista de interesse: "${item.title}".`);
+        watchlistKeys.add(compositeKey);
+        if (itemMediaType === "movie") {
+            watchlistMovieTmdbIds.add(item.tmdbId);
+        }
 
         assert(isNonEmptyString(item.title), "Item da lista com título inválido.");
         assert(item.title.length <= TITLE_MAX, `Título excede ${TITLE_MAX} caracteres.`);
@@ -1101,11 +1212,8 @@ function validateImportData(raw: unknown): asserts raw is ExportData {
     // Séries de TV podem permanecer na lista mesmo após assistir temporadas (R4).
     for (const review of data.reviews!) {
         const isTv = review.mediaType === "tv";
-        if (!isTv && watchlistTmdbIds.has(review.tmdbId)) {
-            const watchItem = data.watchlist!.find((w) => w.tmdbId === review.tmdbId);
-            if (!watchItem || watchItem.mediaType !== "tv") {
-                throw new Error(`O filme "${review.title}" não pode estar simultaneamente assistido e na lista de interesse.`);
-            }
+        if (!isTv && watchlistMovieTmdbIds.has(review.tmdbId)) {
+            throw new Error(`O filme "${review.title}" não pode estar simultaneamente assistido e na lista de interesse.`);
         }
     }
 
@@ -1307,17 +1415,23 @@ export async function mergeData(
 
     validateImportData(raw);
 
-    const [currentUsers, currentReviews, currentWatchlist, currentProgress] = await Promise.all([
+    const [currentUsers, currentReviews, currentWatchlist, currentProgress, currentCheckins] = await Promise.all([
         prisma.user.findMany(),
         prisma.movieReview.findMany(),
         prisma.watchlistItem.findMany(),
-        prisma.seriesProgress.findMany()
+        prisma.seriesProgress.findMany(),
+        prisma.seriesCheckin.findMany({ select: { id: true } })
     ]);
 
     assert(
         currentUsers.length === 2,
         "A aplicação deve ter dois usuários configurados para mesclar dados."
     );
+
+    const existingReviewIds = new Set(currentReviews.map((r) => r.id));
+    const existingWatchlistIds = new Set(currentWatchlist.map((w) => w.id));
+    const existingProgressIds = new Set(currentProgress.map((p) => p.id));
+    const existingCheckinIds = new Set(currentCheckins.map((c) => c.id));
 
     const existingReviewKeys = new Set<string>();
     for (const r of currentReviews) {
@@ -1326,7 +1440,9 @@ export async function mergeData(
             existingReviewKeys.add(`${r.tmdbId}_s${r.seasonNumber ?? 0}_${r.dateWatched}`);
         }
     }
-    const existingWatchlistTmdbIds = new Set(currentWatchlist.map((w) => w.tmdbId));
+    const existingWatchlistKeys = new Set(
+        currentWatchlist.map((w) => `${w.mediaType === "tv" ? "tv" : "movie"}:${w.tmdbId}`)
+    );
     const allWatchedMovieTmdbIds = new Set(
         currentReviews.filter((r) => r.mediaType !== "tv").map((r) => r.tmdbId)
     );
@@ -1343,7 +1459,8 @@ export async function mergeData(
     });
 
     const newWatchlist = raw.watchlist.filter((w) => {
-        if (existingWatchlistTmdbIds.has(w.tmdbId)) return false;
+        const key = `${w.mediaType === "tv" ? "tv" : "movie"}:${w.tmdbId}`;
+        if (existingWatchlistKeys.has(key)) return false;
         if (w.mediaType !== "tv" && allWatchedMovieTmdbIds.has(w.tmdbId)) return false;
         return true;
     });
@@ -1361,10 +1478,12 @@ export async function mergeData(
                 review.recommendedById === importUser1Id
                     ? defaultRecommenderId
                     : secondRecommenderId;
+            const safeId = review.id && !existingReviewIds.has(review.id) ? review.id : undefined;
+            if (safeId) existingReviewIds.add(safeId);
 
             return prisma.movieReview.create({
                 data: {
-                    id: review.id,
+                    ...(safeId ? { id: safeId } : {}),
                     tmdbId: review.tmdbId,
                     title: review.title,
                     posterPath: review.posterPath,
@@ -1400,10 +1519,12 @@ export async function mergeData(
                     : item.addedById
                     ? secondRecommenderId
                     : defaultRecommenderId;
+            const safeId = item.id && !existingWatchlistIds.has(item.id) ? item.id : undefined;
+            if (safeId) existingWatchlistIds.add(safeId);
 
             return prisma.watchlistItem.create({
                 data: {
-                    id: item.id,
+                    ...(safeId ? { id: safeId } : {}),
                     tmdbId: item.tmdbId,
                     title: item.title,
                     posterPath: item.posterPath,
@@ -1418,10 +1539,13 @@ export async function mergeData(
                 }
             });
         }),
-        ...newSeriesProgress.map((sp) =>
-            prisma.seriesProgress.create({
+        ...newSeriesProgress.map((sp) => {
+            const safeSpId = sp.id && !existingProgressIds.has(sp.id) ? sp.id : undefined;
+            if (safeSpId) existingProgressIds.add(safeSpId);
+
+            return prisma.seriesProgress.create({
                 data: {
-                    id: sp.id,
+                    ...(safeSpId ? { id: safeSpId } : {}),
                     tmdbId: sp.tmdbId,
                     title: sp.title,
                     posterPath: sp.posterPath,
@@ -1437,17 +1561,22 @@ export async function mergeData(
                     platform: sp.platform || null,
                     status: sp.status || "watching",
                     checkins: sp.checkins && sp.checkins.length > 0 ? {
-                        create: sp.checkins.map((c) => ({
-                            id: c.id,
-                            dateWatched: c.dateWatched,
-                            episodeStart: c.episodeStart,
-                            episodeEnd: c.episodeEnd,
-                            episodeTag: c.episodeTag
-                        }))
+                        create: sp.checkins.map((c) => {
+                            const safeCheckinId =
+                                c.id && !existingCheckinIds.has(c.id) ? c.id : undefined;
+                            if (safeCheckinId) existingCheckinIds.add(safeCheckinId);
+                            return {
+                                ...(safeCheckinId ? { id: safeCheckinId } : {}),
+                                dateWatched: c.dateWatched,
+                                episodeStart: c.episodeStart,
+                                episodeEnd: c.episodeEnd,
+                                episodeTag: c.episodeTag
+                            };
+                        })
                     } : undefined
                 }
-            })
-        )
+            });
+        })
     ]);
 
     revalidatePath("/");
@@ -1485,7 +1614,7 @@ export async function resetDatabase(): Promise<void> {
  * Verifica se a chave do TMDB está configurada no ambiente.
  */
 export async function checkTmdbStatus(): Promise<{ configured: boolean; message: string }> {
-    const key = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    const key = process.env.TMDB_API_KEY || process.env.NEXT_PUBLIC_TMDB_API_KEY;
     const token = process.env.TMDB_READ_ACCESS_TOKEN;
 
     if (key && key !== "sua_chave_tmdb_aqui" && key.trim() !== "") {

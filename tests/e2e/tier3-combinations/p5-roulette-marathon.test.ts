@@ -73,7 +73,7 @@ describe("Tier 3 - Pairwise 5: Roulette Driving Series Marathon (R4 × R2)", () 
         });
 
         // 5. Verify winner removed from Watchlist and added to SeriesProgress
-        const winnerInWatchlist = await prisma.watchlistItem.findUnique({
+        const winnerInWatchlist = await prisma.watchlistItem.findFirst({
             where: { tmdbId: winner.tmdbId }
         });
         expect(winnerInWatchlist).toBeNull();

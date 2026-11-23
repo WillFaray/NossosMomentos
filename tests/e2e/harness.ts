@@ -198,6 +198,20 @@ export async function addSeriesCheckin(input: AddSeriesCheckinInput): Promise<Db
     return (await getActions()).addSeriesCheckin(input);
 }
 
+export async function deleteSeriesCheckin(
+    id: string
+): Promise<{ success: boolean; seriesProgressId: string; currentEpisode: number }> {
+    return (await getActions()).deleteSeriesCheckin(id);
+}
+
+export async function updateUser(input: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+}): Promise<DbUser> {
+    return (await getActions()).updateUser(input);
+}
+
 export async function getSeriesProgressList(): Promise<DbSeriesProgressWithCheckins[]> {
     return (await getActions()).getSeriesProgressList();
 }
@@ -258,8 +272,11 @@ export async function addToWatchlist(input: {
     });
 }
 
-export async function removeFromWatchlist(id: string): Promise<{ success: boolean }> {
-    await (await getActions()).removeFromWatchlist(id);
+export async function removeFromWatchlist(
+    id: string,
+    mediaType?: "movie" | "tv"
+): Promise<{ success: boolean }> {
+    await (await getActions()).removeFromWatchlist(id, mediaType);
     return { success: true };
 }
 

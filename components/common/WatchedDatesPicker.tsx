@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { formatDate } from "@/lib/utils";
+import { formatDate, getTodayDateString } from "@/lib/utils";
 
 interface WatchedDatesPickerProps {
     selectedDates: string[];
@@ -27,18 +27,13 @@ const MONTHS = [
     "Dezembro"
 ];
 
-function toDateStr(date: Date): string {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-}
-
 export function WatchedDatesPicker({
     selectedDates,
     onChange,
     label = "Dias assistidos"
 }: WatchedDatesPickerProps) {
+    const rangeStartId = useId();
+    const rangeEndId = useId();
     const today = useMemo(() => new Date(), []);
     const initialDate = useMemo(() => {
         if (selectedDates.length > 0) {
@@ -57,6 +52,18 @@ export function WatchedDatesPicker({
     const [rangeEnd, setRangeEnd] = useState("");
     const [showRangeShortcut, setShowRangeShortcut] = useState(false);
 
+    // Sincroniza o mês exibido se a última data selecionada mudar para outro mês externamente
+    useEffect(() => {
+        if (selectedDates.length === 0) return;
+        const latest = [...selectedDates].sort().pop()!;
+        const [y, m] = latest.split("-").map(Number);
+        if (!isNaN(y) && !isNaN(m) && (y !== viewYear || m - 1 !== viewMonth)) {
+            setViewYear(y);
+            setViewMonth(m - 1);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedDates.join(",")]);
+
     const selectedSet = useMemo(() => new Set(selectedDates), [selectedDates]);
 
     const calendarCells = useMemo(() => {
@@ -70,7 +77,7 @@ export function WatchedDatesPicker({
             const d = new Date(viewYear, viewMonth, i - startOffset + 1);
             cells.push({
                 date: d,
-                dateStr: toDateStr(d),
+                dateStr: getTodayDateString(d),
                 inMonth: d.getMonth() === viewMonth
             });
         }
@@ -101,7 +108,7 @@ export function WatchedDatesPicker({
         const next = new Set(selectedSet);
         let count = 0;
         while (curr <= last && count < 90) {
-            next.add(toDateStr(curr));
+            next.add(getTodayDateString(curr));
             curr.setDate(curr.getDate() + 1);
             count++;
         }
@@ -157,13 +164,13 @@ export function WatchedDatesPicker({
                 <div className="flex flex-wrap items-end gap-2 rounded-xl bg-white p-3 shadow-sm ring-1 ring-gray-200 dark:bg-gray-800/80 dark:ring-gray-700">
                     <div className="flex-1 min-w-[130px]">
                         <label
-                            htmlFor="watched-range-start"
+                            htmlFor={rangeStartId}
                             className="mb-1 block text-[11px] font-medium text-gray-600 dark:text-gray-300"
                         >
                             Data de início
                         </label>
                         <input
-                            id="watched-range-start"
+                            id={rangeStartId}
                             type="date"
                             value={rangeStart}
                             onChange={(e) => setRangeStart(e.target.value)}
@@ -172,13 +179,13 @@ export function WatchedDatesPicker({
                     </div>
                     <div className="flex-1 min-w-[130px]">
                         <label
-                            htmlFor="watched-range-end"
+                            htmlFor={rangeEndId}
                             className="mb-1 block text-[11px] font-medium text-gray-600 dark:text-gray-300"
                         >
                             Data de término
                         </label>
                         <input
-                            id="watched-range-end"
+                            id={rangeEndId}
                             type="date"
                             value={rangeEnd}
                             onChange={(e) => setRangeEnd(e.target.value)}

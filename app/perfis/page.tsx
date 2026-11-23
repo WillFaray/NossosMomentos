@@ -19,9 +19,9 @@ import { useReviews } from "@/components/reviews/ReviewProvider";
 import { Avatar } from "@/components/ui/Avatar";
 import { StarRating } from "@/components/ui/StarRating";
 import { ReviewDetailModal } from "@/components/history/ReviewDetailModal";
-import { getPosterUrl } from "@/lib/utils";
+import { buildHistoryEntries, getPosterUrl } from "@/lib/utils";
 import { cn } from "@/lib/cn";
-import type { HistoryEntry, Movie, Review, User } from "@/types";
+import type { Movie, Review, User } from "@/types";
 
 interface HeadToHeadStats {
     totalEntries: number;
@@ -39,48 +39,14 @@ export default function ProfilesPage() {
     const { movies, reviews, users, updateEntry, deleteEntry } = useReviews();
     const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
 
-    // Enquanto o onboarding não estiver completo, o SetupRedirect cuida do redirecionamento
-    if (users.length !== 2) return null;
-
-    const [user1, user2] = users;
+    const user1 = users[0];
+    const user2 = users[1];
 
     // Entradas completas com metadados de sessão (para abrir ReviewDetailModal ao clicar em pôsteres)
-    const historyEntries = useMemo<HistoryEntry[]>(() => {
-        const movieMap = new Map(movies.map((m) => [m.id, m]));
-        const userMap = new Map(users.map((u) => [u.id, u]));
-
-        const reviewsByMovie = new Map<string, Review[]>();
-        for (const r of reviews) {
-            const list = reviewsByMovie.get(r.movieId) ?? [];
-            list.push(r);
-            reviewsByMovie.set(r.movieId, list);
-        }
-        for (const list of reviewsByMovie.values()) {
-            list.sort((a, b) => a.dateWatched.localeCompare(b.dateWatched) || a.id.localeCompare(b.id));
-        }
-
-        return reviews
-            .map((review) => {
-                const movie = movieMap.get(review.movieId);
-                const recommender = userMap.get(review.recommendedBy) ?? user1;
-                const movieHistory = reviewsByMovie.get(review.movieId) ?? [review];
-                const sessionIndex = movieHistory.findIndex((r) => r.id === review.id);
-                const sessionNumber = sessionIndex >= 0 ? sessionIndex + 1 : 1;
-                const totalSessions = movieHistory.length;
-
-                return movie
-                    ? {
-                          review,
-                          movie,
-                          recommender,
-                          sessionNumber,
-                          totalSessions,
-                          isRewatch: sessionNumber > 1
-                      }
-                    : null;
-            })
-            .filter((e): e is HistoryEntry => Boolean(e));
-    }, [movies, reviews, users, user1]);
+    const historyEntries = useMemo(
+        () => buildHistoryEntries(reviews, movies, users),
+        [movies, reviews, users]
+    );
 
     const activeDetailEntry = useMemo(() => {
         if (!selectedReviewId) return null;
@@ -94,6 +60,7 @@ export default function ProfilesPage() {
 
     // Cards individuais dos dois perfis
     const profileCards = useMemo(() => {
+        if (!user1 || !user2) return [];
         const pairs = [
             { user: user1, ratingKey: "ratingUser1" as const },
             { user: user2, ratingKey: "ratingUser2" as const }
@@ -149,7 +116,7 @@ export default function ProfilesPage() {
 
     // Métricas de Sintonia do Casal / Head-to-Head
     const headToHead = useMemo<HeadToHeadStats | null>(() => {
-        if (validEntries.length === 0) return null;
+        if (!user1 || !user2 || validEntries.length === 0) return null;
 
         let totalDiff = 0;
         let maxDiff = -1;
@@ -297,6 +264,9 @@ export default function ProfilesPage() {
             }))
             .sort((a, b) => b.count - a.count);
     }, [reviews]);
+
+    // Enquanto o onboarding não estiver completo, o SetupRedirect cuida do redirecionamento
+    if (users.length !== 2) return null;
 
     return (
         <div className="space-y-6">

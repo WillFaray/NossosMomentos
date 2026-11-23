@@ -121,14 +121,14 @@ describe("Tier 2 - R4: Lista de Interesse e Roleta Boundaries", () => {
         });
 
         // Verify movie Fargo remains in watchlist
-        const movieItem = await prisma.watchlistItem.findUnique({
+        const movieItem = await prisma.watchlistItem.findFirst({
             where: { tmdbId: "movie-fargo-100" }
         });
         expect(movieItem).not.toBeNull();
         expect(movieItem?.title).toBe("Fargo");
 
         // Verify TV series Fargo is removed
-        const tvItem = await prisma.watchlistItem.findUnique({
+        const tvItem = await prisma.watchlistItem.findFirst({
             where: { tmdbId: "tv-fargo-200" }
         });
         expect(tvItem).toBeNull();

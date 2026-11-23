@@ -9,6 +9,8 @@ import { getAllSeriesProgress, getReviews, getUsers, getWatchlist } from "@/lib/
 
 const inter = Inter({ subsets: ["latin"] });
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
     title: "NossosMomentos",
     description: "Registre os momentos do casal: filmes e séries assistidos juntos"

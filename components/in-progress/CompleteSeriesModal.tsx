@@ -9,18 +9,9 @@ import { Avatar } from "@/components/ui/Avatar";
 import { StarRatingInput } from "@/components/ui/StarRatingInput";
 import { WatchedDatesPicker } from "@/components/common/WatchedDatesPicker";
 import { formatDuration, parseRuntimeInput } from "@/lib/runtime";
+import { TV_PLATFORM_OPTIONS } from "@/lib/constants";
+import { getTodayDateString } from "@/lib/utils";
 import { cn } from "@/lib/cn";
-
-const PLATFORM_OPTIONS = [
-    "Netflix",
-    "Max",
-    "Prime Video",
-    "Disney+",
-    "Apple TV+",
-    "Globoplay",
-    "Mubi",
-    "Casa"
-];
 
 interface CompleteSeriesModalProps {
     open: boolean;
@@ -63,7 +54,7 @@ export function CompleteSeriesModal({
         setWatchedDates(
             fromCheckins.length > 0
                 ? fromCheckins
-                : [new Date().toISOString().slice(0, 10)]
+                : [getTodayDateString()]
         );
         setErrorMessage(null);
         setSaving(false);
@@ -266,7 +257,7 @@ export function CompleteSeriesModal({
                             Onde assistiram? (opcional)
                         </p>
                         <div className="flex flex-wrap gap-1.5">
-                            {PLATFORM_OPTIONS.map((item) => {
+                            {TV_PLATFORM_OPTIONS.map((item) => {
                                 const active = platform === item;
                                 return (
                                     <button

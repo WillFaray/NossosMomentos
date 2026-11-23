@@ -59,7 +59,7 @@ describe("Tier 3 - Pairwise 1: Watchlist to In-Progress Transition (R2 × R4)", 
         });
 
         // 3. Verify auto-removal from Watchlist and creation in SeriesProgress
-        const remainingWl = await prisma.watchlistItem.findUnique({
+        const remainingWl = await prisma.watchlistItem.findFirst({
             where: { tmdbId: "1399" }
         });
         expect(remainingWl).toBeNull();
@@ -93,7 +93,7 @@ describe("Tier 3 - Pairwise 1: Watchlist to In-Progress Transition (R2 × R4)", 
         });
 
         // Item remains in Watchlist AND appears in SeriesProgress
-        const keptWl = await prisma.watchlistItem.findUnique({
+        const keptWl = await prisma.watchlistItem.findFirst({
             where: { tmdbId: "2000" }
         });
         expect(keptWl).not.toBeNull();

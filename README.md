@@ -78,7 +78,7 @@ Crie um arquivo `.env` na raiz do projeto (use o `.env.example` como base):
 
 ```env
 DATABASE_URL="file:./dev.db"
-NEXT_PUBLIC_TMDB_API_KEY=sua_chave_tmdb_aqui
+TMDB_API_KEY=sua_chave_tmdb_aqui
 ```
 
 > Obtenha uma chave gratuita da API em [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api).

@@ -52,7 +52,7 @@ describe("Tier 4 - Scenario 6: Multi-Season Sequential Progression with Watchlis
         });
 
         // Verify Succession remains in Watchlist
-        const wlItem = await prisma.watchlistItem.findUnique({
+        const wlItem = await prisma.watchlistItem.findFirst({
             where: { tmdbId: "tv-succ" }
         });
         expect(wlItem).not.toBeNull();
@@ -114,7 +114,7 @@ describe("Tier 4 - Scenario 6: Multi-Season Sequential Progression with Watchlis
         expect(activeList[0].currentEpisode).toBe(1);
 
         // Watchlist still retains Succession
-        const finalWl = await prisma.watchlistItem.findUnique({
+        const finalWl = await prisma.watchlistItem.findFirst({
             where: { tmdbId: "tv-succ" }
         });
         expect(finalWl).not.toBeNull();

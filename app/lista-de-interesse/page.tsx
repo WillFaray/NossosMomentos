@@ -14,6 +14,7 @@ import {
 import { WatchlistSearch } from "@/components/watchlist/WatchlistSearch";
 import { WatchlistDetailModal } from "@/components/watchlist/WatchlistDetailModal";
 import { cn } from "@/lib/cn";
+import { getMediaKey } from "@/lib/utils";
 import type { Movie } from "@/types";
 
 type WatchlistSort = "default" | "title-asc" | "title-desc" | "runtime-asc" | "runtime-desc";
@@ -280,12 +281,17 @@ export default function WatchlistPage() {
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-4">
                         {filteredWatchlist.map((movie, index) => (
                             <MovieCard
-                                key={movie.id}
+                                key={getMediaKey(movie.id, movie.mediaType)}
                                 movie={movie}
                                 index={index}
                                 addedByUser={movie.addedBy ? userMap.get(movie.addedBy) : undefined}
                                 onSelect={(m) => setSelectedMovie(m)}
-                                onRemove={(m) => removeFromWatchlist(m.id)}
+                                onRemove={(m) =>
+                                    removeFromWatchlist(
+                                        m.id,
+                                        m.mediaType === "tv" ? "tv" : "movie"
+                                    )
+                                }
                             />
                         ))}
                     </div>

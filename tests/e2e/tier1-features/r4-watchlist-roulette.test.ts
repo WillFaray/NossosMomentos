@@ -41,7 +41,7 @@ describe("Tier 1 - R4: Lista de Interesse e Roleta", () => {
         expect(item.numberOfEpisodes).toBe(26);
 
         const prisma = getTestPrisma();
-        const dbItem = await prisma.watchlistItem.findUnique({
+        const dbItem = await prisma.watchlistItem.findFirst({
             where: { tmdbId: SAMPLE_SERIES.dark.tmdbId }
         });
         expect(dbItem?.mediaType).toBe("tv");
@@ -101,7 +101,7 @@ describe("Tier 1 - R4: Lista de Interesse e Roleta", () => {
         });
 
         const prisma = getTestPrisma();
-        const beforeStart = await prisma.watchlistItem.findUnique({
+        const beforeStart = await prisma.watchlistItem.findFirst({
             where: { tmdbId: "tv-fargo" }
         });
         expect(beforeStart).not.toBeNull();
@@ -114,7 +114,7 @@ describe("Tier 1 - R4: Lista de Interesse e Roleta", () => {
             removeFromWatchlist: true
         });
 
-        const afterStart = await prisma.watchlistItem.findUnique({
+        const afterStart = await prisma.watchlistItem.findFirst({
             where: { tmdbId: "tv-fargo" }
         });
         expect(afterStart).toBeNull();
@@ -141,7 +141,7 @@ describe("Tier 1 - R4: Lista de Interesse e Roleta", () => {
         });
 
         const prisma = getTestPrisma();
-        const retainedItem = await prisma.watchlistItem.findUnique({
+        const retainedItem = await prisma.watchlistItem.findFirst({
             where: { tmdbId: "tv-fargo-keep" }
         });
         expect(retainedItem).not.toBeNull();

@@ -19,7 +19,7 @@ import { useMemo, useState } from "react";
 import { useReviews } from "@/components/reviews/ReviewProvider";
 import { Avatar } from "@/components/ui/Avatar";
 import { StarRating } from "@/components/ui/StarRating";
-import { formatDate, getPosterUrl } from "@/lib/utils";
+import { buildHistoryEntries, formatDate, getMediaKey, getPosterUrl } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 import {
     ProfileExpansionModal,
@@ -50,21 +50,17 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     const [editOpen, setEditOpen] = useState(false);
     const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
 
-    // Enquanto o onboarding não estiver completo, o SetupRedirect cuida do redirecionamento
-    if (users.length !== 2) return null;
-
-    const [user1, user2] = users;
-
+    const user1 = users[0];
+    const user2 = users[1];
     const user = users.find((u) => u.id === params.id);
-    if (!user) notFound();
 
     // Determina qual usuário é o "perfil" e qual é o "outro"
-    const isUser1 = user.id === user1.id;
+    const isUser1 = Boolean(user && user1 && user.id === user1.id);
     const selfKey = isUser1 ? "ratingUser1" : "ratingUser2";
     const otherKey = isUser1 ? "ratingUser2" : "ratingUser1";
     const otherUser = isUser1 ? user2 : user1;
 
-    // Calcula as estatísticas do perfil memoizadas
+    // Calcula as estatísticas do perfil memoizadas (sempre antes de returns condicionais)
     const {
         ratedEntries,
         moviesOnlyCount,
@@ -83,12 +79,45 @@ export default function ProfilePage({ params }: ProfilePageProps) {
         topGenres,
         ratingBuckets
     } = useMemo(() => {
-        const movieMap = new Map(movies.map((m) => [m.id, m]));
+        if (!user) {
+            return {
+                ratedEntries: [] as { review: Review; movie: (typeof movies)[number] }[],
+                moviesOnlyCount: 0,
+                seriesOnlyCount: 0,
+                avgRating: 0,
+                topFavorites: [] as { reviewId: string; movie: (typeof movies)[number]; rating: number }[],
+                allFavorites: [] as { reviewId: string; movie: (typeof movies)[number]; rating: number; dateWatched: string }[],
+                topDisappointments: [] as { reviewId: string; movie: (typeof movies)[number]; rating: number }[],
+                allDisappointments: [] as { reviewId: string; movie: (typeof movies)[number]; rating: number; dateWatched: string }[],
+                recommendedReviews: [] as { review: Review; movie: (typeof movies)[number] }[],
+                bestRecommendation: null as { reviewId: string; movie: (typeof movies)[number]; rating: number } | null,
+                allRecommendations: [] as { reviewId: string; movie: (typeof movies)[number]; rating: number; dateWatched: string }[],
+                recentEntries: [] as { reviewId: string; movie: (typeof movies)[number]; rating: number; dateWatched: string }[],
+                allRecent: [] as { reviewId: string; movie: (typeof movies)[number]; rating: number; dateWatched: string }[],
+                hitRate: 0,
+                topGenres: [] as { genre: string; avgRating: number; count: number }[],
+                ratingBuckets: RATING_STEPS.map((step) => ({
+                    step,
+                    count: 0,
+                    percentage: 0,
+                    heightPercent: 0
+                }))
+            };
+        }
+
+        const movieMap = new Map<string, (typeof movies)[number]>();
+        const movieFallbackMap = new Map<string, (typeof movies)[number]>();
+        for (const m of movies) {
+            movieMap.set(getMediaKey(m.id, m.mediaType), m);
+            if (!movieFallbackMap.has(m.id)) movieFallbackMap.set(m.id, m);
+        }
 
         const rated = reviews
             .map((review) => ({
                 review,
-                movie: movieMap.get(review.movieId)
+                movie:
+                    movieMap.get(getMediaKey(review.movieId, review.mediaType)) ??
+                    movieFallbackMap.get(review.movieId)
             }))
             .filter(
                 (entry): entry is { review: (typeof reviews)[number]; movie: (typeof movies)[number] } =>
@@ -269,28 +298,19 @@ export default function ProfilePage({ params }: ProfilePageProps) {
         recent: allRecent
     };
 
+    const historyEntries = useMemo(
+        () => buildHistoryEntries(reviews, movies, users),
+        [reviews, movies, users]
+    );
+
     const selectedEntry: HistoryEntry | null = useMemo(() => {
         if (!selectedReviewId) return null;
-        const found = ratedEntries.find(({ review }) => review.id === selectedReviewId);
-        if (!found) return null;
+        return historyEntries.find((e) => e.review.id === selectedReviewId) ?? null;
+    }, [selectedReviewId, historyEntries]);
 
-        const userMap = new Map(users.map((u) => [u.id, u]));
-        const recommender = userMap.get(found.review.recommendedBy) ?? user1;
-        const movieHistory = reviews
-            .filter((r) => r.movieId === found.review.movieId)
-            .sort((a, b) => a.dateWatched.localeCompare(b.dateWatched) || a.id.localeCompare(b.id));
-        const sessionIndex = movieHistory.findIndex((r) => r.id === found.review.id);
-        const sessionNumber = sessionIndex >= 0 ? sessionIndex + 1 : 1;
-
-        return {
-            review: found.review,
-            movie: found.movie,
-            recommender,
-            sessionNumber,
-            totalSessions: movieHistory.length,
-            isRewatch: sessionNumber > 1
-        };
-    }, [selectedReviewId, ratedEntries, users, user1, reviews]);
+    // Enquanto o onboarding não estiver completo, o SetupRedirect cuida do redirecionamento
+    if (users.length !== 2) return null;
+    if (!user || !otherUser) notFound();
 
     const PosterItem = ({
         item,

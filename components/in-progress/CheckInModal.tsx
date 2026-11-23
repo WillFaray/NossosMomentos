@@ -5,6 +5,7 @@ import { CalendarCheck, CheckCircle2, PartyPopper, Sparkles, Tv } from "lucide-r
 import type { DbSeriesCheckin, DbSeriesProgressWithCheckins } from "@/types";
 import { useReviews } from "@/components/reviews/ReviewProvider";
 import { Modal } from "@/components/ui/Modal";
+import { getTodayDateString } from "@/lib/utils";
 import { cn } from "@/lib/cn";
 
 interface CheckInModalProps {
@@ -28,9 +29,7 @@ export function CheckInModal({
 
     const [episodeStart, setEpisodeStart] = useState(1);
     const [episodeEnd, setEpisodeEnd] = useState(1);
-    const [dateWatched, setDateWatched] = useState(() =>
-        new Date().toISOString().slice(0, 10)
-    );
+    const [dateWatched, setDateWatched] = useState(() => getTodayDateString());
     const [saving, setSaving] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [completedPrompt, setCompletedPrompt] = useState<DbSeriesCheckin | null>(null);
@@ -40,7 +39,7 @@ export function CheckInModal({
         const nextEp = Math.min(series.totalEpisodes, Math.max(1, series.currentEpisode + 1));
         setEpisodeStart(nextEp);
         setEpisodeEnd(nextEp);
-        setDateWatched(new Date().toISOString().slice(0, 10));
+        setDateWatched(getTodayDateString());
         setErrorMessage(null);
         setCompletedPrompt(null);
         setSaving(false);

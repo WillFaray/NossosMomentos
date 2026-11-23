@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
     CalendarDays,
     Clock,
@@ -47,6 +47,15 @@ export function ReviewDetailModal({
     const [editOpen, setEditOpen] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    // Reseta estados internos ao fechar ou alternar entre obras
+    useEffect(() => {
+        if (!open) {
+            setConfirmDelete(false);
+            setEditOpen(false);
+            setDeleting(false);
+        }
+    }, [open, entry?.review.id]);
 
     const parsedWatchedDates = useMemo(() => {
         if (!entry?.review.watchedDates) return [];

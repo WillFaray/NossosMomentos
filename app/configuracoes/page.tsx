@@ -31,6 +31,7 @@ import { useReviews } from "@/components/reviews/ReviewProvider";
 import { Avatar } from "@/components/ui/Avatar";
 import { Modal } from "@/components/ui/Modal";
 import { EditProfileModal } from "@/components/profiles/EditProfileModal";
+import { getTodayDateString } from "@/lib/utils";
 import type { User } from "@/types";
 
 function downloadBlob(content: BlobPart, filename: string, type: string) {
@@ -85,7 +86,7 @@ export default function SettingsPage() {
         setMessage(null);
         try {
             const data = await exportData();
-            const dateStamp = new Date().toISOString().slice(0, 10);
+            const dateStamp = getTodayDateString();
             downloadBlob(
                 JSON.stringify(data, null, 2),
                 `nossosmomentos-export-${dateStamp}.json`,
@@ -105,7 +106,7 @@ export default function SettingsPage() {
         setMessage(null);
         try {
             const base64 = await backupDatabase();
-            const dateStamp = new Date().toISOString().slice(0, 10);
+            const dateStamp = getTodayDateString();
             downloadBlob(
                 base64ToBlob(base64, "application/x-sqlite3"),
                 `nossosmomentos-backup-${dateStamp}.db`,
@@ -266,9 +267,9 @@ export default function SettingsPage() {
                         Sessões
                     </p>
                     <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
-                        {reviews.length} {reviews.length === 1 ? "filme" : "filmes"}
+                        {reviews.length} {reviews.length === 1 ? "registro" : "registros"}
                     </p>
-                    <p className="mt-0.5 text-xs text-gray-400">No diário</p>
+                    <p className="mt-0.5 text-xs text-gray-400">Filmes e séries no diário</p>
                 </div>
 
                 <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200 dark:bg-card-dark dark:ring-gray-800">
@@ -277,7 +278,7 @@ export default function SettingsPage() {
                         Watchlist
                     </p>
                     <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
-                        {watchlist.length} {watchlist.length === 1 ? "filme" : "filmes"}
+                        {watchlist.length} {watchlist.length === 1 ? "título" : "títulos"}
                     </p>
                     <p className="mt-0.5 text-xs text-gray-400">Para assistir</p>
                 </div>
@@ -422,8 +423,21 @@ export default function SettingsPage() {
                         O arquivo contém{" "}
                         <strong>{pendingImport.data.users.length} usuários</strong> (
                         {pendingImport.data.users.map((u) => u.name).join(" e ")}),{" "}
-                        <strong>{pendingImport.data.reviews.length} sessões de filmes</strong> e{" "}
-                        <strong>{pendingImport.data.watchlist.length} filmes na lista de interesse</strong>.
+                        <strong>{pendingImport.data.reviews.length} registros no diário</strong>,{" "}
+                        <strong>{pendingImport.data.watchlist.length} títulos na lista de interesse</strong>
+                        {Array.isArray(pendingImport.data.seriesProgress) &&
+                        pendingImport.data.seriesProgress.length > 0 ? (
+                            <>
+                                {" "}e{" "}
+                                <strong>
+                                    {pendingImport.data.seriesProgress.length}{" "}
+                                    {pendingImport.data.seriesProgress.length === 1
+                                        ? "série acompanhada"
+                                        : "séries acompanhadas"}
+                                </strong>
+                            </>
+                        ) : null}
+                        .
                     </p>
 
                     <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -435,7 +449,7 @@ export default function SettingsPage() {
                                     Mesclar Dados (Recomendado)
                                 </h4>
                                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    Mantém todos os seus dados atuais e adiciona apenas novos filmes e sessões que não existiam antes.
+                                    Mantém todos os seus dados atuais e adiciona apenas novos filmes, séries e sessões que não existiam antes.
                                 </p>
                             </div>
                             <button

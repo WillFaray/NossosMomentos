@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Calendar, Clock, Tv } from "lucide-react";
+import { Calendar, Clock, Loader2, Trash2, Tv } from "lucide-react";
 import type { CalendarSessionItem } from "@/types";
+import { useReviews } from "@/components/reviews/ReviewProvider";
 import { Modal } from "@/components/ui/Modal";
 import { formatDate, getPosterUrl } from "@/lib/utils";
 import { formatDuration } from "@/lib/runtime";
@@ -18,6 +20,17 @@ export function CheckInDetailModal({
     onClose,
     session
 }: CheckInDetailModalProps) {
+    const { deleteCheckin } = useReviews();
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    useEffect(() => {
+        if (!open) {
+            setConfirmDelete(false);
+            setDeleting(false);
+        }
+    }, [open, session?.id]);
+
     if (!session) return null;
 
     const checkin = session.checkin;
@@ -27,6 +40,20 @@ export function CheckInDetailModal({
         : 1;
     const runtimePerEpisode = progress?.runtimePerEpisode || 45;
     const sessionDuration = formatDuration(episodesCount * runtimePerEpisode);
+
+    const handleDeleteCheckin = async () => {
+        if (!checkin || deleting) return;
+        setDeleting(true);
+        try {
+            await deleteCheckin(checkin.id);
+            setConfirmDelete(false);
+            onClose();
+        } catch (err) {
+            console.error("Erro ao excluir check-in:", err);
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     return (
         <Modal open={open} onClose={onClose}>
@@ -133,14 +160,59 @@ export function CheckInDetailModal({
                     </div>
                 </div>
 
-                <div className="mt-6 flex justify-end">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                    >
-                        Fechar
-                    </button>
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-gray-100 pt-4 dark:border-gray-800">
+                    {checkin && confirmDelete ? (
+                        <div className="flex w-full flex-wrap items-center justify-between gap-2">
+                            <span className="text-xs font-medium text-red-600 dark:text-red-400">
+                                Desfazer este check-in e recalcular o progresso?
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    disabled={deleting}
+                                    onClick={() => setConfirmDelete(false)}
+                                    className="rounded-xl bg-gray-100 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={deleting}
+                                    onClick={handleDeleteCheckin}
+                                    className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-60"
+                                >
+                                    {deleting ? (
+                                        <Loader2 size={13} className="animate-spin" />
+                                    ) : (
+                                        <Trash2 size={13} />
+                                    )}
+                                    Confirmar exclusão
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            {checkin ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setConfirmDelete(true)}
+                                    className="inline-flex items-center gap-1.5 rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
+                                >
+                                    <Trash2 size={13} />
+                                    Desfazer check-in
+                                </button>
+                            ) : (
+                                <span />
+                            )}
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="rounded-xl bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                            >
+                                Fechar
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         </Modal>

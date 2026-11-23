@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Check, Clock, ExternalLink, Film, Loader2, PlayCircle, Trash2, Tv } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import type { Movie, User } from "@/types";
+import type { MediaType, Movie, User } from "@/types";
 import { getPosterUrl } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
 import { Modal } from "@/components/ui/Modal";
@@ -14,7 +14,7 @@ interface WatchlistDetailModalProps {
     onClose: () => void;
     movie: Movie | null;
     addedByUser?: User;
-    onRemove: (movieId: string) => Promise<void>;
+    onRemove: (movieId: string, mediaType?: MediaType) => Promise<void>;
 }
 
 export function WatchlistDetailModal({
@@ -36,7 +36,7 @@ export function WatchlistDetailModal({
         if (removing) return;
         setRemoving(true);
         try {
-            await onRemove(movie.id);
+            await onRemove(movie.id, isTv ? "tv" : "movie");
             setConfirmRemove(false);
             onClose();
         } catch (err) {

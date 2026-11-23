@@ -7,18 +7,8 @@ import { Modal } from "@/components/ui/Modal";
 import { Avatar } from "@/components/ui/Avatar";
 import { StarRatingInput } from "@/components/ui/StarRatingInput";
 import { cn } from "@/lib/cn";
+import { PLATFORM_OPTIONS } from "@/lib/constants";
 import type { EntryInput } from "@/components/reviews/ReviewProvider";
-
-const PLATFORM_OPTIONS = [
-    "Cinema",
-    "Netflix",
-    "Max",
-    "Prime Video",
-    "Disney+",
-    "Apple TV+",
-    "Mubi",
-    "Casa"
-];
 
 interface EditReviewModalProps {
     open: boolean;
@@ -163,7 +153,7 @@ export function EditReviewModal({ open, onClose, review, movie, users, onSave }:
                         <input
                             type="text"
                             placeholder="Ou digite outro local/streaming..."
-                            value={PLATFORM_OPTIONS.includes(platform) ? "" : platform}
+                            value={(PLATFORM_OPTIONS as readonly string[]).includes(platform) ? "" : platform}
                             onChange={(e) => setPlatform(e.target.value)}
                             disabled={saving}
                             maxLength={50}

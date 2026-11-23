@@ -6,57 +6,16 @@ import { useReviews } from "@/components/reviews/ReviewProvider";
 import { HistoryTabs } from "@/components/history/HistoryTabs";
 import { InProgressSection } from "@/components/in-progress/InProgressSection";
 import { Avatar } from "@/components/ui/Avatar";
-import { formatDate } from "@/lib/utils";
+import { buildHistoryEntries, formatDate, getMediaKey } from "@/lib/utils";
 import { getEntryDurationMinutes, formatDuration } from "@/lib/runtime";
-import type { HistoryEntry, Review } from "@/types";
 
 export default function HistoryPage() {
     const { movies, reviews, users } = useReviews();
 
-    // Enquanto o onboarding não estiver completo, o SetupRedirect cuida do redirecionamento
-    if (users.length !== 2) return null;
-
-    const [user1, user2] = users;
-
-    const entries = useMemo<HistoryEntry[]>(() => {
-        const movieMap = new Map(movies.map((m) => [m.id, m]));
-        const userMap = new Map(users.map((u) => [u.id, u]));
-
-        // Agrupa sessões por movieId para calcular a ordem cronológica de cada sessão (Rewatch)
-        const reviewsByMovie = new Map<string, Review[]>();
-        for (const r of reviews) {
-            const list = reviewsByMovie.get(r.movieId) ?? [];
-            list.push(r);
-            reviewsByMovie.set(r.movieId, list);
-        }
-        for (const list of reviewsByMovie.values()) {
-            list.sort((a, b) => a.dateWatched.localeCompare(b.dateWatched) || a.id.localeCompare(b.id));
-        }
-
-        return [...reviews]
-            .sort((a, b) => b.dateWatched.localeCompare(a.dateWatched))
-            .map((review) => {
-                const movie = movieMap.get(review.movieId);
-                const recommender = userMap.get(review.recommendedBy) ?? user1;
-                const movieHistory = reviewsByMovie.get(review.movieId) ?? [review];
-                const sessionIndex = movieHistory.findIndex((r) => r.id === review.id);
-                const sessionNumber = sessionIndex >= 0 ? sessionIndex + 1 : 1;
-                const totalSessions = movieHistory.length;
-                const isRewatch = sessionNumber > 1;
-
-                return movie
-                    ? {
-                          review,
-                          movie,
-                          recommender,
-                          sessionNumber,
-                          totalSessions,
-                          isRewatch
-                      }
-                    : null;
-            })
-            .filter((entry): entry is HistoryEntry => Boolean(entry));
-    }, [reviews, movies, users, user1]);
+    const entries = useMemo(
+        () => buildHistoryEntries(reviews, movies, users),
+        [reviews, movies, users]
+    );
 
     const totalMovies = reviews.length;
     const moviesOnlyCount = useMemo(
@@ -67,8 +26,14 @@ export default function HistoryPage() {
         () => reviews.filter((r) => r.mediaType === "tv").length,
         [reviews]
     );
-    const uniqueMoviesCount = useMemo(() => new Set(reviews.map((r) => r.movieId)).size, [reviews]);
-    const rewatchSessionsCount = totalMovies - uniqueMoviesCount;
+    const uniqueMoviesCount = useMemo(
+        () => new Set(reviews.map((r) => getMediaKey(r.movieId, r.mediaType))).size,
+        [reviews]
+    );
+    const rewatchSessionsCount = useMemo(
+        () => entries.filter((e) => e.isRewatch).length,
+        [entries]
+    );
 
     // Cálculo do total de horas assistidas juntas (filmes + episódios de séries)
     const runtimeStats = useMemo(() => {
@@ -91,6 +56,11 @@ export default function HistoryPage() {
             isEstimated: estimatedCount > 0
         };
     }, [entries]);
+
+    // Enquanto o onboarding não estiver completo, o SetupRedirect cuida do redirecionamento
+    if (users.length !== 2) return null;
+
+    const [user1, user2] = users;
 
     return (
         <div className="space-y-8">

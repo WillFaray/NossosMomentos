@@ -16,8 +16,9 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import type { MediaType, Movie, TvSeason } from "@/types";
-import { formatDate, getPosterUrl } from "@/lib/utils";
+import { formatDate, getMediaKey, getPosterUrl, getTodayDateString } from "@/lib/utils";
 import { formatDuration, parseRuntimeInput } from "@/lib/runtime";
+import { ABANDON_REASONS, PLATFORM_OPTIONS } from "@/lib/constants";
 import { useReviews } from "@/components/reviews/ReviewProvider";
 import { Avatar } from "@/components/ui/Avatar";
 import { StarRatingInput } from "@/components/ui/StarRatingInput";
@@ -26,35 +27,7 @@ import { WatchedDatesPicker } from "@/components/common/WatchedDatesPicker";
 import { MovieSearch } from "./MovieSearch";
 import { cn } from "@/lib/cn";
 
-const PLATFORM_OPTIONS = [
-    "Cinema",
-    "Netflix",
-    "Max",
-    "Prime Video",
-    "Disney+",
-    "Apple TV+",
-    "Globoplay",
-    "Mubi",
-    "Casa"
-];
-
-const ABANDON_REASONS = [
-    "Ficou chata",
-    "Ritmo muito lento",
-    "Não prendeu a atenção",
-    "História confusa",
-    "Perdemos o interesse"
-];
-
 type SeriesEntryMode = "completed" | "watching" | "abandoned";
-
-function getTodayDateString(): string {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-}
 
 export function AddEntryForm() {
     const searchParams = useSearchParams();
@@ -97,7 +70,7 @@ export function AddEntryForm() {
     const [watchedDates, setWatchedDates] = useState<string[]>(() => [
         getTodayDateString()
     ]);
-    const [abandonReasonChip, setAbandonReasonChip] = useState(ABANDON_REASONS[0]);
+    const [abandonReasonChip, setAbandonReasonChip] = useState<string>(ABANDON_REASONS[0]);
     const [customAbandonReason, setCustomAbandonReason] = useState("");
 
     const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -180,18 +153,21 @@ export function AddEntryForm() {
         };
     }, [selectedMovie?.id, mediaType]);
 
-    // Verifica se o item está na Lista de Interesse
+    // Verifica se o item está na Lista de Interesse (respeitando mediaType)
     const isInWatchlist = useMemo(() => {
-        return Boolean(
-            selectedMovie && watchlist.some((m) => m.id === selectedMovie.id)
-        );
-    }, [selectedMovie, watchlist]);
+        if (!selectedMovie) return false;
+        const targetKey = getMediaKey(selectedMovie.id, isTv ? "tv" : selectedMovie.mediaType);
+        return watchlist.some((m) => getMediaKey(m.id, m.mediaType) === targetKey);
+    }, [selectedMovie, watchlist, isTv]);
 
     // Carrega obra automaticamente caso tmdbId venha na URL (ex: via Watchlist ou Roleta)
     useEffect(() => {
         if (!urlTmdbId || selectedMovie) return;
 
-        const fromWatchlist = watchlist.find((m) => m.id === urlTmdbId);
+        const targetUrlKey = getMediaKey(urlTmdbId, urlMediaType);
+        const fromWatchlist = watchlist.find(
+            (m) => getMediaKey(m.id, m.mediaType) === targetUrlKey
+        );
         if (fromWatchlist) {
             if (fromWatchlist.mediaType === "tv" || urlMediaType === "tv") {
                 setMediaType("tv");
@@ -203,7 +179,9 @@ export function AddEntryForm() {
             return;
         }
 
-        const fromMovies = movies.find((m) => m.id === urlTmdbId);
+        const fromMovies = movies.find(
+            (m) => getMediaKey(m.id, m.mediaType) === targetUrlKey
+        );
         if (fromMovies) {
             if (fromMovies.mediaType === "tv" || urlMediaType === "tv") {
                 setMediaType("tv");
@@ -251,25 +229,19 @@ export function AddEntryForm() {
         };
     }, [urlTmdbId, urlMediaType, watchlist, movies, selectedMovie]);
 
-    // Histórico de sessões anteriores desta obra
+    // Histórico de sessões anteriores desta obra (respeitando mediaType)
     const previousSessions = useMemo(() => {
         if (!selectedMovie) return [];
+        const targetKey = getMediaKey(selectedMovie.id, isTv ? "tv" : selectedMovie.mediaType);
         return reviews
-            .filter((r) => r.movieId === selectedMovie.id)
+            .filter((r) => getMediaKey(r.movieId, r.mediaType) === targetKey)
             .sort((a, b) => b.dateWatched.localeCompare(a.dateWatched));
-    }, [selectedMovie, reviews]);
-
-    if (users.length !== 2) return null;
+    }, [selectedMovie, reviews, isTv]);
 
     const chosenSeasonObj =
         typeof seasonScope === "number"
             ? seasons.find((s) => s.season_number === seasonScope) ?? null
             : null;
-
-    const activePosterPath =
-        (isTv && chosenSeasonObj?.poster_path) ||
-        selectedMovie?.poster_path ||
-        "";
 
     const resolvedSeasonName = useMemo(() => {
         if (!isTv) return null;
@@ -280,6 +252,13 @@ export function AddEntryForm() {
         }
         return chosenSeasonObj?.name || `${seasonScope}ª Temporada`;
     }, [isTv, seasonScope, selectedMovie, seasons.length, chosenSeasonObj]);
+
+    if (users.length !== 2) return null;
+
+    const activePosterPath =
+        (isTv && chosenSeasonObj?.poster_path) ||
+        selectedMovie?.poster_path ||
+        "";
 
     const parsedEpRuntime = parseRuntimeInput(runtimePerEpisode, 45);
     const seriesTotalMinutes = Math.max(1, episodesWatched) * parsedEpRuntime;
@@ -1089,7 +1068,7 @@ export function AddEntryForm() {
                                 type="text"
                                 placeholder="Ou digite outro local/streaming (ex: Stremio, Blu-ray)..."
                                 value={
-                                    PLATFORM_OPTIONS.includes(platform)
+                                    (PLATFORM_OPTIONS as readonly string[]).includes(platform)
                                         ? ""
                                         : platform
                                 }

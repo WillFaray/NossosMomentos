@@ -16,7 +16,7 @@ model User {
 
 model WatchlistItem {
     id               String   @id @default(cuid())
-    tmdbId           String   @unique
+    tmdbId           String
     title            String
     posterPath       String
     genres           String
@@ -30,6 +30,7 @@ model WatchlistItem {
     addedById        String
     addedBy          User     @relation(fields: [addedById], references: [id])
 
+    @@unique([tmdbId, mediaType])
     @@index([mediaType])
 }
 

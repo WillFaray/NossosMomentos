@@ -6,6 +6,8 @@
         "dev": "bun x next dev",
         "build": "bun x next build",
         "start": "bun x next start",
+        "test": "bun test tests/e2e/",
+        "typecheck": "bun x tsc --noEmit",
         "db:generate": "bun x prisma generate",
         "db:migrate": "bun x prisma migrate deploy"
     },

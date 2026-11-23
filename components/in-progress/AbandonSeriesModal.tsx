@@ -7,15 +7,8 @@ import { useReviews } from "@/components/reviews/ReviewProvider";
 import { Modal } from "@/components/ui/Modal";
 import { Avatar } from "@/components/ui/Avatar";
 import { StarRatingInput } from "@/components/ui/StarRatingInput";
+import { ABANDON_REASONS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
-
-const ABANDON_REASONS = [
-    "Ficou chata",
-    "Ritmo muito lento",
-    "Não prendeu a atenção",
-    "História confusa",
-    "Perdemos o interesse"
-];
 
 interface AbandonSeriesModalProps {
     open: boolean;
@@ -34,11 +27,12 @@ export function AbandonSeriesModal({
     const episodesInputId = useId();
     const commentId = useId();
 
-    const [selectedReason, setSelectedReason] = useState(ABANDON_REASONS[0]);
+    const [selectedReason, setSelectedReason] = useState<string>(ABANDON_REASONS[0]);
     const [customReason, setCustomReason] = useState("");
     const [episodesWatched, setEpisodesWatched] = useState(1);
     const [ratingUser1, setRatingUser1] = useState(2.0);
     const [ratingUser2, setRatingUser2] = useState(2.0);
+    const [recommendedBy, setRecommendedBy] = useState(users[0]?.id ?? "");
     const [textReview, setTextReview] = useState("");
     const [saving, setSaving] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -50,10 +44,11 @@ export function AbandonSeriesModal({
         setEpisodesWatched(Math.max(1, series.currentEpisode || 1));
         setRatingUser1(2.0);
         setRatingUser2(2.0);
+        setRecommendedBy(users[0]?.id ?? "");
         setTextReview("");
         setErrorMessage(null);
         setSaving(false);
-    }, [open, series]);
+    }, [open, series, users]);
 
     if (!series || users.length < 2) return null;
 
@@ -79,6 +74,7 @@ export function AbandonSeriesModal({
                 ),
                 ratingUser1: ratingUser1 > 0 ? ratingUser1 : 2.0,
                 ratingUser2: ratingUser2 > 0 ? ratingUser2 : 2.0,
+                recommendedById: recommendedBy || users[0].id,
                 textReview:
                     textReview.trim() || `Série abandonada: ${finalReason}`
             });
@@ -159,23 +155,55 @@ export function AbandonSeriesModal({
                         </div>
                     </div>
 
-                    {/* Episódios assistidos antes de parar */}
-                    <div>
-                        <label
-                            htmlFor={episodesInputId}
-                            className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300"
-                        >
-                            Quantos episódios chegaram a assistir? (de {series.totalEpisodes})
-                        </label>
-                        <input
-                            id={episodesInputId}
-                            type="number"
-                            min={0}
-                            max={series.totalEpisodes}
-                            value={episodesWatched}
-                            onChange={(e) => setEpisodesWatched(Number(e.target.value))}
-                            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2 text-sm font-semibold text-gray-900 focus:border-amber-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800/80 dark:text-white"
-                        />
+                    {/* Episódios assistidos & Quem indicou */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <label
+                                htmlFor={episodesInputId}
+                                className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300"
+                            >
+                                Episódios vistos (de {series.totalEpisodes})
+                            </label>
+                            <input
+                                id={episodesInputId}
+                                type="number"
+                                min={0}
+                                max={series.totalEpisodes}
+                                value={episodesWatched}
+                                onChange={(e) => setEpisodesWatched(Number(e.target.value))}
+                                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3.5 py-2 text-sm font-semibold text-gray-900 focus:border-amber-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800/80 dark:text-white"
+                            />
+                        </div>
+
+                        <fieldset>
+                            <legend className="mb-1.5 block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                Quem indicou?
+                            </legend>
+                            <div className="flex gap-2">
+                                {users.map((u) => (
+                                    <label
+                                        key={u.id}
+                                        className={cn(
+                                            "flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 text-xs font-semibold transition-colors",
+                                            recommendedBy === u.id
+                                                ? "border-amber-600 bg-amber-50 text-amber-700 dark:border-amber-500 dark:bg-amber-500/15 dark:text-amber-300"
+                                                : "border-gray-200 text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+                                        )}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="abandonRecommendedBy"
+                                            value={u.id}
+                                            checked={recommendedBy === u.id}
+                                            onChange={() => setRecommendedBy(u.id)}
+                                            className="sr-only"
+                                        />
+                                        <Avatar src={u.avatar} name={u.name} size="sm" className="h-5 w-5" />
+                                        {u.name.split(" ")[0]}
+                                    </label>
+                                ))}
+                            </div>
+                        </fieldset>
                     </div>
 
                     {/* Notas leves opcionais */}

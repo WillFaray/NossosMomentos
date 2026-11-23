@@ -6,22 +6,13 @@ import { Loader2, Plus, Search, Tv } from "lucide-react";
 import type { DbSeriesProgressWithCheckins, Movie, TvSeason } from "@/types";
 import { useReviews } from "@/components/reviews/ReviewProvider";
 import { Modal } from "@/components/ui/Modal";
-import { getPosterUrl } from "@/lib/utils";
+import { getMediaKey, getPosterUrl } from "@/lib/utils";
+import { TV_PLATFORM_OPTIONS } from "@/lib/constants";
 import { cn } from "@/lib/cn";
 import { InProgressCard } from "./InProgressCard";
 import { CheckInModal } from "./CheckInModal";
 import { CompleteSeriesModal } from "./CompleteSeriesModal";
 import { AbandonSeriesModal } from "./AbandonSeriesModal";
-
-const PLATFORM_OPTIONS = [
-    "Netflix",
-    "Max",
-    "Prime Video",
-    "Disney+",
-    "Apple TV+",
-    "Globoplay",
-    "Mubi"
-];
 
 export function InProgressSection() {
     const { seriesProgress, startSeriesProgress, watchlist } = useReviews();
@@ -67,26 +58,34 @@ export function InProgressSection() {
         const trimmed = query.trim();
         if (trimmed.length < 2 || selectedTv) {
             setResults([]);
+            setSearching(false);
             return;
         }
+        const controller = new AbortController();
         const timer = setTimeout(async () => {
             setSearching(true);
             try {
                 const res = await fetch(
-                    `/api/tv/search?q=${encodeURIComponent(trimmed)}`
+                    `/api/tv/search?q=${encodeURIComponent(trimmed)}`,
+                    { signal: controller.signal }
                 );
                 if (res.ok) {
                     const data = await res.json();
                     setResults(data.results || data.movies || []);
                 }
-            } catch {
-                // ignora erro de rede temporário
+            } catch (err) {
+                if ((err as { name?: string })?.name === "AbortError") return;
             } finally {
-                setSearching(false);
+                if (!controller.signal.aborted) {
+                    setSearching(false);
+                }
             }
         }, 300);
 
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            controller.abort();
+        };
     }, [query, selectedTv]);
 
     const handleSelectSeries = async (tv: Movie) => {
@@ -167,7 +166,10 @@ export function InProgressSection() {
     };
 
     const isSelectedInWatchlist = Boolean(
-        selectedTv && watchlist.some((w) => w.id === selectedTv.id)
+        selectedTv &&
+            watchlist.some(
+                (w) => getMediaKey(w.id, w.mediaType) === getMediaKey(selectedTv.id, "tv")
+            )
     );
 
     return (
@@ -438,7 +440,7 @@ export function InProgressSection() {
                                     Onde estão assistindo? (opcional)
                                 </p>
                                 <div className="flex flex-wrap gap-1.5">
-                                    {PLATFORM_OPTIONS.map((p) => (
+                                    {TV_PLATFORM_OPTIONS.map((p) => (
                                         <button
                                             key={p}
                                             type="button"

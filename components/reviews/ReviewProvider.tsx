@@ -25,12 +25,14 @@ import {
     addToWatchlist,
     completeSeriesProgress,
     deleteMovieReview,
+    deleteSeriesCheckin,
     deleteSeriesProgress,
     removeFromWatchlist,
     updateMovieReview
 } from "@/lib/actions";
 
 import { toAppReview, toAppUser, toMovieFromReview } from "@/lib/adapters";
+import { getMediaKey } from "@/lib/utils";
 import { Toast } from "@/components/ui/Toast";
 
 export interface EntryInput {
@@ -66,9 +68,10 @@ interface ReviewProviderValue {
     updateEntry: (id: string, entry: EntryInput) => Promise<void>;
     deleteEntry: (id: string) => Promise<void>;
     addToWatchlist: (movie: Movie, addedById?: string) => Promise<void>;
-    removeFromWatchlist: (id: string) => Promise<void>;
+    removeFromWatchlist: (id: string, mediaType?: MediaType) => Promise<void>;
     startSeriesProgress: (input: AddSeriesProgressInput) => Promise<DbSeriesProgress>;
     checkinSeries: (input: AddSeriesCheckinInput) => Promise<DbSeriesCheckin>;
+    deleteCheckin: (checkinId: string) => Promise<void>;
     cancelSeriesProgress: (id: string) => Promise<void>;
     abandonSeries: (id: string, input: AbandonSeriesInput) => Promise<void>;
     completeSeries: (id: string, input: CompleteSeriesInput) => Promise<void>;
@@ -120,7 +123,7 @@ export function ReviewProvider({
         const map = new Map<string, Movie>();
         initialReviews.forEach((review) => {
             const movie = toMovieFromReview(review);
-            map.set(movie.id, movie);
+            map.set(getMediaKey(movie.id, movie.mediaType), movie);
         });
         return map;
     });
@@ -136,7 +139,7 @@ export function ReviewProvider({
         const map = new Map<string, Movie>();
         initialReviews.forEach((review) => {
             const movie = toMovieFromReview(review);
-            map.set(movie.id, movie);
+            map.set(getMediaKey(movie.id, movie.mediaType), movie);
         });
         setMovieData(map);
     }, [initialReviews]);
@@ -174,10 +177,11 @@ export function ReviewProvider({
         const seen = new Set<string>();
         const result: Movie[] = [];
         reviews.forEach((review) => {
-            if (seen.has(review.movieId)) return;
-            const movie = movieData.get(review.movieId);
+            const key = getMediaKey(review.movieId, review.mediaType);
+            if (seen.has(key)) return;
+            const movie = movieData.get(key);
             if (movie) {
-                seen.add(review.movieId);
+                seen.add(key);
                 result.push(movie);
             }
         });
@@ -187,7 +191,7 @@ export function ReviewProvider({
     const upsertMovieData = useCallback((movie: Movie) => {
         setMovieData((prev) => {
             const next = new Map(prev);
-            next.set(movie.id, movie);
+            next.set(getMediaKey(movie.id, movie.mediaType), movie);
             return next;
         });
     }, []);
@@ -237,7 +241,8 @@ export function ReviewProvider({
                 ...prev.filter((r) => r.id !== dbReview.id)
             ]);
             if (shouldRemove) {
-                setWatchlist((prev) => prev.filter((m) => m.id !== dbReview.tmdbId));
+                const targetKey = getMediaKey(dbReview.tmdbId, dbReview.mediaType);
+                setWatchlist((prev) => prev.filter((m) => getMediaKey(m.id, m.mediaType) !== targetKey));
             }
             if (entry.seriesProgressId) {
                 setAllSeriesProgress((prev) =>
@@ -319,8 +324,9 @@ export function ReviewProvider({
             });
 
             const watchlistMovie = toWatchlistMovie(created);
+            const targetKey = getMediaKey(watchlistMovie.id, watchlistMovie.mediaType);
             setWatchlist((prev) => {
-                if (prev.some((m) => m.id === watchlistMovie.id)) return prev;
+                if (prev.some((m) => getMediaKey(m.id, m.mediaType) === targetKey)) return prev;
                 return [watchlistMovie, ...prev];
             });
         } catch (error) {
@@ -389,10 +395,16 @@ export function ReviewProvider({
         }
     }, [reportError]);
 
-    const removeFromWatchlistHandler = useCallback(async (id: string) => {
+    const removeFromWatchlistHandler = useCallback(async (id: string, mediaType?: MediaType) => {
         try {
-            await removeFromWatchlist(id);
-            setWatchlist((prev) => prev.filter((m) => m.id !== id));
+            await removeFromWatchlist(id, mediaType);
+            setWatchlist((prev) =>
+                prev.filter((m) => {
+                    if (m.id !== id) return true;
+                    if (!mediaType) return false;
+                    return (m.mediaType === "tv" ? "tv" : "movie") !== mediaType;
+                })
+            );
         } catch (error) {
             console.error("Erro ao remover da lista de interesse:", error);
             reportError("Não foi possível remover o item da lista.");
@@ -413,7 +425,10 @@ export function ReviewProvider({
                     ...prev.filter((s) => s.id !== created.id)
                 ]);
                 if (input.removeFromWatchlist !== false) {
-                    setWatchlist((prev) => prev.filter((m) => m.id !== created.tmdbId));
+                    const targetKey = getMediaKey(created.tmdbId, "tv");
+                    setWatchlist((prev) =>
+                        prev.filter((m) => getMediaKey(m.id, m.mediaType) !== targetKey)
+                    );
                 }
                 return created;
             } catch (error) {
@@ -452,6 +467,34 @@ export function ReviewProvider({
                     error instanceof Error
                         ? error.message
                         : "Não foi possível registrar os episódios assistidos.";
+                reportError(msg);
+                throw error;
+            }
+        },
+        [reportError]
+    );
+
+    const deleteCheckinHandler = useCallback(
+        async (checkinId: string) => {
+            try {
+                const res = await deleteSeriesCheckin(checkinId);
+                setAllSeriesProgress((prev) =>
+                    prev.map((sp) => {
+                        if (sp.id !== res.seriesProgressId) return sp;
+                        return {
+                            ...sp,
+                            currentEpisode: res.currentEpisode,
+                            updatedAt: new Date().toISOString(),
+                            checkins: sp.checkins.filter((c) => c.id !== checkinId)
+                        };
+                    })
+                );
+            } catch (error) {
+                console.error("Erro ao excluir check-in:", error);
+                const msg =
+                    error instanceof Error
+                        ? error.message
+                        : "Não foi possível excluir o check-in.";
                 reportError(msg);
                 throw error;
             }
@@ -511,8 +554,11 @@ export function ReviewProvider({
                     toAppReview(dbReview),
                     ...prev.filter((r) => r.id !== dbReview.id)
                 ]);
-                if (input.removeFromWatchlist !== false) {
-                    setWatchlist((prev) => prev.filter((m) => m.id !== dbReview.tmdbId));
+                if (input.removeFromWatchlist === true) {
+                    const targetKey = getMediaKey(dbReview.tmdbId, "tv");
+                    setWatchlist((prev) =>
+                        prev.filter((m) => getMediaKey(m.id, m.mediaType) !== targetKey)
+                    );
                 }
                 setAllSeriesProgress((prev) =>
                     prev.map((sp) =>
@@ -549,6 +595,7 @@ export function ReviewProvider({
         removeFromWatchlist: removeFromWatchlistHandler,
         startSeriesProgress: startSeriesProgressHandler,
         checkinSeries: checkinSeriesHandler,
+        deleteCheckin: deleteCheckinHandler,
         cancelSeriesProgress: cancelSeriesProgressHandler,
         abandonSeries: abandonSeriesHandler,
         completeSeries: completeSeriesHandler
@@ -567,6 +614,7 @@ export function ReviewProvider({
         removeFromWatchlistHandler,
         startSeriesProgressHandler,
         checkinSeriesHandler,
+        deleteCheckinHandler,
         cancelSeriesProgressHandler,
         abandonSeriesHandler,
         completeSeriesHandler
