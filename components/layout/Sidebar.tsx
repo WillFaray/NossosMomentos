@@ -72,13 +72,20 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                                 href={item.href}
                                 onClick={onClose}
                                 className={cn(
-                                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
                                     isActive
-                                        ? "bg-gradient-to-r from-accent-600 to-accent-500 text-white shadow-lg shadow-accent-500/25"
-                                        : "border border-white/10 bg-white/5 text-gray-600 hover:bg-white/10 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                                        ? "bg-gold-400/15 text-gold-600 ring-1 ring-gold-400/30 dark:bg-gold-400/10 dark:text-gold-300"
+                                        : "border border-indigo-200/80 bg-indigo-50/70 text-indigo-700 hover:bg-indigo-100/80 dark:border-indigo-500/25 dark:bg-indigo-500/10 dark:text-indigo-300 dark:hover:bg-indigo-500/20"
                                 )}
                             >
-                                <Icon size={18} />
+                                <Icon
+                                    size={18}
+                                    className={cn(
+                                        isActive
+                                            ? "text-gold-500"
+                                            : "text-indigo-600 dark:text-indigo-400"
+                                    )}
+                                />
                                 {item.label}
                             </Link>
                         );
@@ -102,13 +109,20 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                                 href={item.href}
                                 onClick={onClose}
                                 className={cn(
-                                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                                    "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500",
                                     isActive
-                                        ? "bg-gold-400/10 text-gold-500 dark:text-gold-300"
-                                        : "text-gray-600 hover:bg-white/10 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                                        ? "bg-gold-400/15 font-semibold text-gold-600 ring-1 ring-gold-400/30 dark:bg-gold-400/10 dark:text-gold-300"
+                                        : "text-gray-600 hover:bg-gray-100/80 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white"
                                 )}
                             >
-                                <Icon size={18} className={cn(isActive ? "text-gold-500" : "text-gray-400 dark:text-gray-500")} />
+                                <Icon
+                                    size={18}
+                                    className={cn(
+                                        isActive
+                                            ? "text-gold-500"
+                                            : "text-gray-400 dark:text-gray-500"
+                                    )}
+                                />
                                 {item.label}
                             </Link>
                         );

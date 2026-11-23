@@ -455,14 +455,16 @@ export default function ProfilesPage() {
 
                         <div className="mt-5 flex items-center justify-between border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
                             <span>Mais exigente</span>
-                            <span className="inline-flex items-center gap-1 font-semibold text-gray-900 dark:text-white">
+                            <span className="inline-flex items-center gap-1.5 font-semibold text-gray-900 dark:text-white">
                                 {headToHead.criticDiff < 0.05 ? (
                                     "Empate técnico"
                                 ) : (
                                     <>
-                                        {headToHead.moreCriticalUser?.name.split(" ")[0]} (-
-                                        {headToHead.criticDiff.toFixed(1)}
-                                        <Star size={11} className="fill-gold-400 text-gold-400" />)
+                                        <span>{headToHead.moreCriticalUser?.name.split(" ")[0]}</span>
+                                        <span className="inline-flex items-center text-gray-600 dark:text-gray-300">
+                                            (-{headToHead.criticDiff.toFixed(1)}
+                                            <Star size={11} className="ml-0.5 fill-gold-400 text-gold-400" />)
+                                        </span>
                                     </>
                                 )}
                             </span>
@@ -502,7 +504,7 @@ export default function ProfilesPage() {
                                     )}
                                 </div>
                                 <div className="min-w-0 flex-1 space-y-2">
-                                    <h3 className="truncate text-sm font-bold text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">
+                                    <h3 className="line-clamp-2 text-sm font-bold leading-snug text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">
                                         {bestAgreement.movie.title}
                                     </h3>
                                     <div className="flex flex-wrap items-center gap-2">
@@ -570,7 +572,7 @@ export default function ProfilesPage() {
                                     )}
                                 </div>
                                 <div className="min-w-0 flex-1 space-y-2">
-                                    <h3 className="truncate text-sm font-bold text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">
+                                    <h3 className="line-clamp-2 text-sm font-bold leading-snug text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">
                                         {mostDivergent.movie.title}
                                     </h3>
                                     <div className="flex flex-wrap items-center gap-2">
@@ -637,7 +639,7 @@ export default function ProfilesPage() {
                                                 src={getPosterUrl(movie.poster_path, "w342")}
                                                 alt={movie.title}
                                                 fill
-                                                sizes="(max-width: 768px) 45vw, 18vw"
+                                                sizes="(max-width: 640px) 42vw, 160px"
                                                 className="object-cover"
                                             />
                                         ) : (
@@ -648,22 +650,28 @@ export default function ProfilesPage() {
                                         <span className="absolute left-2 top-2 rounded-md bg-gray-900/80 px-1.5 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm">
                                             #{rank}
                                         </span>
+                                        <span className="absolute right-2 top-2 inline-flex items-center gap-0.5 rounded-md bg-gray-900/80 px-1.5 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm">
+                                            <Star size={10} className="fill-gold-400 text-gold-400" />
+                                            {combinedRating.toFixed(1)}
+                                        </span>
                                     </div>
 
                                     <h3 className="mt-2 truncate text-xs font-semibold text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">
                                         {movie.title}
                                     </h3>
 
-                                    <div className="mt-1 flex w-full items-center justify-between gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
-                                        <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-gray-800 dark:text-gray-200">
-                                            <Star size={11} className="fill-gold-400 text-gold-400" />
-                                            {combinedRating.toFixed(1)}
+                                    <div className="mt-1 flex w-full flex-wrap items-center justify-between gap-1 text-[11px] text-gray-500 dark:text-gray-400">
+                                        <span className="inline-flex items-center gap-0.5">
+                                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                {user1.name.split(" ")[0]}:
+                                            </span>{" "}
+                                            {review.ratingUser1}★
                                         </span>
-                                        <span
-                                            className="truncate text-right text-[10.5px] text-gray-500 dark:text-gray-400"
-                                            title={`${user1.name}: ${review.ratingUser1} · ${user2.name}: ${review.ratingUser2}`}
-                                        >
-                                            {user1.name}: {review.ratingUser1} · {user2.name}: {review.ratingUser2}
+                                        <span className="inline-flex items-center gap-0.5">
+                                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                {user2.name.split(" ")[0]}:
+                                            </span>{" "}
+                                            {review.ratingUser2}★
                                         </span>
                                     </div>
                                 </button>
@@ -724,16 +732,13 @@ export default function ProfilesPage() {
                                         {movie.title}
                                     </h3>
 
-                                    <div className="mt-1 flex w-full items-center justify-between gap-1.5 text-[11px] text-gray-500 dark:text-gray-400">
-                                        <span className="inline-flex shrink-0 items-center gap-1 font-semibold text-gray-800 dark:text-gray-200">
+                                    <div className="mt-1 flex w-full flex-wrap items-center justify-between gap-1 text-[11px] text-gray-500 dark:text-gray-400">
+                                        <span className="inline-flex shrink-0 items-center gap-0.5 font-semibold text-gray-800 dark:text-gray-200">
                                             <Star size={11} className="fill-gold-400 text-gold-400" />
                                             {combinedRating.toFixed(1)}
                                         </span>
-                                        <span
-                                            className="truncate text-right text-[10.5px] text-gray-500 dark:text-gray-400"
-                                            title={`${user1.name}: ${review.ratingUser1} · ${user2.name}: ${review.ratingUser2}`}
-                                        >
-                                            {user1.name}: {review.ratingUser1} · {user2.name}: {review.ratingUser2}
+                                        <span className="text-[10.5px] text-gray-500 dark:text-gray-400">
+                                            {user1.name.split(" ")[0]}: {review.ratingUser1} · {user2.name.split(" ")[0]}: {review.ratingUser2}
                                         </span>
                                     </div>
                                 </button>
@@ -762,7 +767,12 @@ export default function ProfilesPage() {
                             </h2>
                         </div>
 
-                        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        <div
+                            className={cn(
+                                "mt-4 grid grid-cols-2 gap-3",
+                                decadeStats.length === 4 ? "sm:grid-cols-2" : "sm:grid-cols-3"
+                            )}
+                        >
                             {decadeStats.slice(0, 6).map(({ decade, label, count, avgRating }) => (
                                 <div
                                     key={decade}
@@ -824,7 +834,12 @@ export default function ProfilesPage() {
                             })}
                         </div>
 
-                        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                        <div
+                            className={cn(
+                                "mt-4 grid grid-cols-2 gap-3",
+                                decadeStats.length === 4 ? "sm:grid-cols-2" : "sm:grid-cols-3"
+                            )}
+                        >
                             {platformStats.map((item, idx) => {
                                 const dotColors = [
                                     "bg-indigo-600",

@@ -288,14 +288,14 @@ export default function SettingsPage() {
                         <KeyRound size={13} className="text-indigo-600 dark:text-indigo-400" />
                         TMDB API
                     </p>
-                    <p className="mt-1 text-sm font-bold text-gray-900 dark:text-white">
+                    <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
                         {tmdbStatus === null
                             ? "Verificando..."
                             : tmdbStatus.configured
                             ? "Conectada"
                             : "Pendente"}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-gray-400 truncate" title={tmdbStatus?.message}>
+                    <p className="mt-0.5 truncate text-xs text-gray-400" title={tmdbStatus?.message}>
                         {tmdbStatus?.configured ? "Chave configurada" : "Verifique o arquivo .env"}
                     </p>
                 </div>
@@ -356,7 +356,7 @@ export default function SettingsPage() {
                             type="button"
                             onClick={handleExport}
                             disabled={exporting}
-                            className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="mt-5 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                             {exporting ? "Exportando..." : "Baixar JSON"}
@@ -376,7 +376,7 @@ export default function SettingsPage() {
                             type="button"
                             onClick={handleBackup}
                             disabled={backingUp}
-                            className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="mt-5 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {backingUp ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                             {backingUp ? "Gerando..." : "Baixar .db"}
@@ -403,7 +403,7 @@ export default function SettingsPage() {
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={importing}
-                            className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="mt-5 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-amber-600 dark:hover:bg-amber-500"
                         >
                             {importing ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
                             {importing ? "Importando..." : "Selecionar arquivo JSON"}
@@ -517,7 +517,7 @@ export default function SettingsPage() {
                             setResetConfirmInput("");
                             setResetModalOpen(true);
                         }}
-                        className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-500"
+                        className="inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-red-500"
                     >
                         <Trash2 size={14} />
                         Redefinir banco

@@ -220,17 +220,14 @@ export function InProgressSection() {
                     ))}
                 </div>
             ) : (
-                <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-dashed border-gray-200 bg-white/60 px-5 py-4 sm:flex-row dark:border-gray-800 dark:bg-card-dark/50">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-gray-200 bg-white/60 px-5 py-3.5 dark:border-gray-800 dark:bg-card-dark/50">
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Nenhuma série em andamento no momento. Comecem uma maratona para usar o check-in rápido no Calendário!
+                        Nenhuma série em andamento no momento. Usem o botão{" "}
+                        <strong className="font-semibold text-gray-700 dark:text-gray-300">
+                            + Iniciar série
+                        </strong>{" "}
+                        acima quando começarem uma nova maratona para fazer check-in rápido no Calendário!
                     </p>
-                    <button
-                        type="button"
-                        onClick={() => setStartOpen(true)}
-                        className="shrink-0 rounded-xl bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
-                    >
-                        + Adicionar série em andamento
-                    </button>
                 </div>
             )}
 

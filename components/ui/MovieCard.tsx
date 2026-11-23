@@ -73,10 +73,10 @@ export function MovieCard({
             >
                 {movie.poster_path ? (
                     <Image
-                        src={getPosterUrl(movie.poster_path)}
+                        src={getPosterUrl(movie.poster_path, "w342")}
                         alt={movie.title}
                         fill
-                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                        sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 220px"
                         className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
                     />
                 ) : (
@@ -190,7 +190,10 @@ export function MovieCard({
                     onClick={() => onSelect?.(movie)}
                     className="text-left focus:outline-none"
                 >
-                    <h3 className="line-clamp-1 text-sm font-semibold leading-snug text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-gray-100 dark:group-hover:text-indigo-400">
+                    <h3
+                        className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-gray-100 dark:group-hover:text-indigo-400"
+                        title={movie.title}
+                    >
                         {movie.title}
                     </h3>
                 </button>

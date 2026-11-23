@@ -321,7 +321,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
     }) => (
         <div
             onClick={() => setSelectedReviewId(item.reviewId)}
-            className="group flex cursor-pointer flex-col"
+            className="group flex min-w-0 cursor-pointer flex-col"
         >
             <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-gray-100 shadow-sm ring-1 ring-gray-200 transition-transform duration-200 group-hover:-translate-y-0.5 dark:bg-gray-800 dark:ring-gray-700">
                 {item.movie.poster_path ? (
@@ -329,7 +329,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         src={getPosterUrl(item.movie.poster_path, "w342")}
                         alt={item.movie.title}
                         fill
-                        sizes="(max-width: 768px) 30vw, 15vw"
+                        sizes="(max-width: 640px) 28vw, 130px"
                         className="object-cover"
                     />
                 ) : (
@@ -337,25 +337,26 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                         Sem capa
                     </span>
                 )}
-            </div>
-            <h3 className="mt-2 truncate text-xs font-semibold text-gray-900 dark:text-white">
-                {item.movie.title}
-            </h3>
-            <div className="mt-1 flex items-center justify-between gap-1">
-                <div className="flex items-center gap-1">
-                    <StarRating rating={item.rating} size={11} />
-                    <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
-                        {item.rating.toFixed(1)}
-                    </span>
-                </div>
                 {dateWatched && (
                     <span
-                        className="shrink-0 text-[10px] text-gray-400 dark:text-gray-500"
+                        className="absolute right-1.5 top-1.5 rounded-md bg-gray-900/80 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur-sm"
                         title={`Assistido em ${formatDate(dateWatched)}`}
                     >
                         {formatCompactDate(dateWatched)}
                     </span>
                 )}
+            </div>
+            <h3
+                className="mt-2 truncate text-xs font-semibold text-gray-900 dark:text-white"
+                title={item.movie.title}
+            >
+                {item.movie.title}
+            </h3>
+            <div className="mt-1 flex items-center gap-1">
+                <StarRating rating={item.rating} size={10} />
+                <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
+                    {item.rating.toFixed(1)}
+                </span>
             </div>
         </div>
     );
@@ -541,7 +542,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                                     <div
                                         key={review.id}
                                         onClick={() => setSelectedReviewId(review.id)}
-                                        className="group flex cursor-pointer flex-col"
+                                        className="group flex min-w-0 cursor-pointer flex-col"
                                     >
                                         <div className="relative aspect-[2/3] overflow-hidden rounded-xl bg-gray-100 shadow-sm ring-1 ring-gray-200 transition-transform duration-200 group-hover:-translate-y-0.5 dark:bg-gray-800 dark:ring-gray-700">
                                             {movie.poster_path ? (
@@ -549,7 +550,7 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                                                     src={getPosterUrl(movie.poster_path, "w342")}
                                                     alt={movie.title}
                                                     fill
-                                                    sizes="(max-width: 768px) 30vw, 15vw"
+                                                    sizes="(max-width: 640px) 28vw, 130px"
                                                     className="object-cover"
                                                 />
                                             ) : (
@@ -558,17 +559,20 @@ export default function ProfilePage({ params }: ProfilePageProps) {
                                                 </span>
                                             )}
                                         </div>
-                                        <h3 className="mt-2 truncate text-xs font-semibold text-gray-900 dark:text-white">
+                                        <h3
+                                            className="mt-2 truncate text-xs font-semibold text-gray-900 dark:text-white"
+                                            title={movie.title}
+                                        >
                                             {movie.title}
                                         </h3>
-                                        <div className="mt-1 flex items-center gap-1">
+                                        <div className="mt-1 flex flex-wrap items-center gap-1">
                                             <Avatar
                                                 src={otherUser.avatar}
                                                 name={otherUser.name}
                                                 size="sm"
-                                                className="h-3.5 w-3.5 text-[7px]"
+                                                className="h-3.5 w-3.5 shrink-0 text-[7px]"
                                             />
-                                            <StarRating rating={review[otherKey]} size={11} />
+                                            <StarRating rating={review[otherKey]} size={10} />
                                             <span className="text-[11px] font-semibold text-gray-600 dark:text-gray-300">
                                                 {review[otherKey].toFixed(1)}
                                             </span>

@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
+import { cn } from "@/lib/cn";
 
 interface ModalProps {
     open: boolean;
     onClose: () => void;
     children: React.ReactNode;
     ariaLabel?: string;
+    maxWidthClass?: string;
 }
 
 // Pilha global para coordenar Escape e scroll-lock quando há modais aninhados
@@ -17,10 +20,21 @@ const openModalStack: symbol[] = [];
 const FOCUSABLE_SELECTOR =
     'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function Modal({ open, onClose, children, ariaLabel }: ModalProps) {
+export function Modal({
+    open,
+    onClose,
+    children,
+    ariaLabel,
+    maxWidthClass = "max-w-lg"
+}: ModalProps) {
     const dialogRef = useRef<HTMLDivElement | null>(null);
     const onCloseRef = useRef(onClose);
     onCloseRef.current = onClose;
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         if (!open) return;
@@ -104,17 +118,17 @@ export function Modal({ open, onClose, children, ariaLabel }: ModalProps) {
         };
     }, [open]);
 
-    return (
+    const modalContent = (
         <AnimatePresence>
             {open && (
-                <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+                <div className="fixed inset-0 z-[100] !mt-0 flex items-end justify-center p-4 sm:items-center">
                     {/* Overlay com blur */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.25, ease: "easeOut" }}
-                        className="absolute inset-0 bg-gray-950/70 backdrop-blur-md"
+                        className="fixed inset-0 bg-gray-950/75 backdrop-blur-md"
                         onClick={onClose}
                         aria-hidden="true"
                     />
@@ -130,12 +144,15 @@ export function Modal({ open, onClose, children, ariaLabel }: ModalProps) {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 10 }}
                         transition={{ type: "spring", duration: 0.45, bounce: 0.15 }}
-                        className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-white/10 bg-white/95 shadow-[0_24px_80px_-12px_rgba(0,0,0,0.5)] backdrop-blur-2xl focus:outline-none dark:bg-card-dark/95"
+                        className={cn(
+                            "relative z-10 w-full overflow-hidden rounded-3xl border border-gray-200/80 bg-white/95 shadow-[0_24px_80px_-12px_rgba(0,0,0,0.5)] backdrop-blur-2xl focus:outline-none dark:border-white/10 dark:bg-card-dark/95",
+                            maxWidthClass
+                        )}
                     >
                         <button
                             type="button"
                             onClick={onClose}
-                            className="absolute right-3 top-3 z-10 rounded-full border border-white/10 bg-black/20 p-1.5 text-gray-500 backdrop-blur-md transition-all hover:scale-110 hover:bg-black/30 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+                            className="absolute right-3.5 top-3.5 z-20 rounded-full border border-gray-200/60 bg-gray-100/80 p-1.5 text-gray-600 backdrop-blur-md transition-all hover:scale-110 hover:bg-gray-200 hover:text-gray-900 dark:border-white/10 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/20 dark:hover:text-white"
                             aria-label="Fechar modal"
                         >
                             <X size={16} />
@@ -146,4 +163,10 @@ export function Modal({ open, onClose, children, ariaLabel }: ModalProps) {
             )}
         </AnimatePresence>
     );
+
+    if (!mounted || typeof document === "undefined") {
+        return null;
+    }
+
+    return createPortal(modalContent, document.body);
 }

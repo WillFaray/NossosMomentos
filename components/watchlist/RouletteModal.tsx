@@ -149,34 +149,34 @@ export function RouletteModal({
     const hasMovies = eligibleMovies.length > 0;
 
     return (
-        <Modal open={open} onClose={onClose}>
-            <div className="p-6 sm:p-8">
+        <Modal open={open} onClose={onClose} maxWidthClass="max-w-xl">
+            <div className="max-h-[88vh] overflow-y-auto p-5 sm:p-6">
                 {/* Cabeçalho */}
                 <div className="text-center">
                     <motion.div
                         animate={rolling ? { rotate: 360, scale: [1, 1.15, 1] } : { rotate: 0, scale: 1 }}
                         transition={rolling ? { repeat: Infinity, duration: 0.8, ease: "linear" } : { duration: 0.4 }}
-                        className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-500 to-accent-600 text-white shadow-lg shadow-accent-500/40"
+                        className="mx-auto flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-500 to-accent-600 text-white shadow-lg shadow-accent-500/40"
                     >
-                        <Dices size={24} />
+                        <Dices size={20} />
                     </motion.div>
-                    <h3 className="mt-3 text-lg font-bold text-gray-900 dark:text-white">
+                    <h3 className="mt-2 text-lg font-bold text-gray-900 dark:text-white">
                         Roleta de Filmes & Séries
                     </h3>
-                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                         Deixe a sorte decidir o que assistir hoje!
                     </p>
                 </div>
 
                 {movies.length === 0 ? (
-                    <div className="mt-6 rounded-xl bg-gray-50 p-6 text-center text-sm text-gray-500 dark:bg-gray-800/50 dark:text-gray-400">
+                    <div className="mt-5 rounded-xl bg-gray-50 p-6 text-center text-sm text-gray-500 dark:bg-gray-800/50 dark:text-gray-400">
                         Adicione filmes ou séries à lista de interesse para usar a roleta.
                     </div>
                 ) : (
                     <>
                         {/* Filtros de sorteio */}
                         {!result && (
-                            <div className="mt-5 space-y-3 rounded-2xl bg-gray-50 p-3.5 dark:bg-gray-800/40">
+                            <div className="mt-4 space-y-2.5 rounded-2xl bg-gray-50 p-3 dark:bg-gray-800/40">
                                 {/* Tipo de Mídia: Ambos | Filmes | Séries */}
                                 <div className="flex flex-wrap items-center justify-center gap-1.5">
                                     {(
@@ -314,7 +314,7 @@ export function RouletteModal({
                         )}
 
                         {/* Resultado / Prévia */}
-                        <div className="mt-6">
+                        <div className="mt-4">
                             <AnimatePresence mode="wait">
                                 {result ? (
                                     <motion.div
@@ -384,7 +384,7 @@ export function RouletteModal({
                                         exit={{ opacity: 0 }}
                                         className="flex flex-col items-center gap-5 sm:flex-row sm:items-start"
                                     >
-                                        <div className="relative aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-2xl bg-gray-100 shadow-poster ring-1 ring-gray-200 dark:bg-gray-800 dark:ring-gray-700">
+                                        <div className="relative aspect-[2/3] w-28 shrink-0 overflow-hidden rounded-2xl bg-gray-100 shadow-poster ring-1 ring-gray-200 sm:w-32 dark:bg-gray-800 dark:ring-gray-700">
                                             {previewMovie?.poster_path ? (
                                                 <Image
                                                     src={getPosterUrl(previewMovie.poster_path, "w342")}
@@ -462,7 +462,7 @@ export function RouletteModal({
                             </div>
                         )}
 
-                        <div className="mt-6 flex flex-wrap justify-center gap-3">
+                        <div className="mt-5 flex flex-wrap justify-center gap-3">
                             {!result && (
                                 <motion.button
                                     whileHover={{ scale: 1.03 }}

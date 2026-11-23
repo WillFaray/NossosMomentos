@@ -62,10 +62,10 @@ export function HistoryGridView({ entries, user1, user2 }: HistoryGridViewProps)
                                 )}
                                 {movie.poster_path ? (
                                     <Image
-                                        src={getPosterUrl(movie.poster_path)}
+                                        src={getPosterUrl(movie.poster_path, "w342")}
                                         alt={movie.title}
                                         fill
-                                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 20vw"
+                                        sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 190px"
                                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                                     />
                                 ) : (
@@ -74,11 +74,19 @@ export function HistoryGridView({ entries, user1, user2 }: HistoryGridViewProps)
                                     </span>
                                 )}
                             </button>
-                            <div className="mt-2 flex items-center justify-between px-1 text-xs text-gray-500 dark:text-gray-400">
-                                <span className="truncate text-[11px]">{formatDate(review.dateWatched)}</span>
-                                <span className="text-[11px] font-medium text-gray-700 dark:text-gray-300 shrink-0">
-                                    {((review.ratingUser1 + review.ratingUser2) / 2).toFixed(1)}★
-                                </span>
+                            <div className="mt-2 px-1">
+                                <h3
+                                    className="truncate text-xs font-semibold text-gray-900 dark:text-white"
+                                    title={movie.title}
+                                >
+                                    {movie.title}
+                                </h3>
+                                <div className="mt-0.5 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                    <span className="truncate text-[11px]">{formatDate(review.dateWatched)}</span>
+                                    <span className="shrink-0 text-[11px] font-medium text-gray-700 dark:text-gray-300">
+                                        {((review.ratingUser1 + review.ratingUser2) / 2).toFixed(1)}★
+                                    </span>
+                                </div>
                             </div>
                         </li>
                     );

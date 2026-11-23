@@ -530,12 +530,12 @@ export function HistoryTabs({ entries, user1, user2 }: HistoryTabsProps) {
                         </div>
 
                         {/* Filtro rápido: Re-watches */}
-                        <div className="flex items-center">
+                        <div className="flex shrink-0 items-center">
                             <button
                                 type="button"
                                 onClick={() => setRewatchOnly(!rewatchOnly)}
                                 className={cn(
-                                    "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors",
+                                    "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors",
                                     rewatchOnly
                                         ? "bg-purple-100 text-purple-700 ring-1 ring-purple-300 dark:bg-purple-500/20 dark:text-purple-300 dark:ring-purple-500/40"
                                         : "text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"

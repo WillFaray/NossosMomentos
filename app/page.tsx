@@ -141,7 +141,10 @@ export default function HistoryPage() {
                     <p className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">
                         {entries[0]?.movie.mediaType === "tv" ? "Última série" : "Último filme"}
                     </p>
-                    <p className="mt-1 truncate text-2xl font-bold text-gray-900 dark:text-white">
+                    <p
+                        className="mt-1 line-clamp-2 text-lg font-bold leading-snug text-gray-900 sm:text-xl dark:text-white"
+                        title={entries[0]?.movie.title}
+                    >
                         {entries[0]?.movie.title ?? "-"}
                     </p>
                     {entries[0] && (

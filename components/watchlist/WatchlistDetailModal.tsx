@@ -49,18 +49,19 @@ export function WatchlistDetailModal({
     return (
         <Modal
             open={open}
+            maxWidthClass="max-w-2xl"
             onClose={() => {
                 setConfirmRemove(false);
                 onClose();
             }}
         >
-            <div className="p-6 sm:p-8">
+            <div className="max-h-[85vh] overflow-y-auto p-6 sm:p-8">
                 <div className="flex flex-col gap-6 sm:flex-row">
                     {/* Poster */}
-                    <div className="relative mx-auto aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-xl bg-gray-200 shadow-md dark:bg-gray-800 sm:mx-0">
+                    <div className="relative mx-auto aspect-[2/3] w-40 shrink-0 overflow-hidden rounded-xl bg-gray-200 shadow-md ring-1 ring-gray-200/80 dark:bg-gray-800 dark:ring-gray-700 sm:mx-0">
                         {movie.poster_path ? (
                             <Image
-                                src={getPosterUrl(movie.poster_path)}
+                                src={getPosterUrl(movie.poster_path, "w342")}
                                 alt={movie.title}
                                 fill
                                 sizes="160px"
@@ -75,7 +76,7 @@ export function WatchlistDetailModal({
 
                     {/* Detalhes */}
                     <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start justify-between gap-3 pr-9">
                             <div>
                                 <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
                                     <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[11px] font-semibold text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300">
